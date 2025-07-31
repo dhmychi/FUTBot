@@ -118,6 +118,7 @@ const faqs = [
 ];
 
 export default function LandingPage() {
+  console.log('LandingPage component is rendering...');
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [activeTestimonialIndex, setActiveTestimonialIndex] = useState(0);
