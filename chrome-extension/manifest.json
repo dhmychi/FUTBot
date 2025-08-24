@@ -10,7 +10,8 @@
   ],
   "host_permissions": [
     "https://*.ea.com/*",
-    "https://qdvtrvfezpkiertyuida.supabase.co/*"
+    "https://qdvtrvfezpkiertyuida.supabase.co/*",
+    "https://keyauth.win/*"
   ],
   "action": {
     "default_popup": "popup.html",

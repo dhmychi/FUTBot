@@ -1,0 +1,259 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import crypto from 'crypto';
+import axios from 'axios';
+
+// PayPal webhook configuration
+const PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID || '';
+const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || '';
+const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || '';
+const PAYPAL_SANDBOX = process.env.PAYPAL_SANDBOX === 'true';
+
+// KeyAuth configuration
+const KEYAUTH_CONFIG = {
+  name: "FUTBot",
+  ownerid: process.env.KEYAUTH_OWNER_ID || '',
+  secret: process.env.KEYAUTH_SECRET || '',
+  version: "1.0.0",
+  url: "https://keyauth.win/api/1.2/"
+};
+
+// Subscription plans mapping
+const SUBSCRIPTION_PLANS = {
+  '15.00': { duration: 30, plan: '1-month' },      // 1 Month - $15
+  '24.99': { duration: 90, plan: '3-months' },     // 3 Months - $24.99
+  '49.99': { duration: 365, plan: '12-months' }    // 12 Months - $49.99
+};
+
+// PayPal API helper functions
+async function getPayPalAccessToken(): Promise<string> {
+  const baseURL = PAYPAL_SANDBOX ? 'https://api.sandbox.paypal.com' : 'https://api.paypal.com';
+  
+  try {
+    const response = await axios.post(`${baseURL}/v1/oauth2/token`, 
+      'grant_type=client_credentials',
+      {
+        headers: {
+          'Accept': 'application/json',
+          'Accept-Language': 'en_US',
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        auth: {
+          username: PAYPAL_CLIENT_ID,
+          password: PAYPAL_CLIENT_SECRET
+        }
+      }
+    );
+    return response.data.access_token;
+  } catch (error) {
+    console.error('Failed to get PayPal access token:', error);
+    throw new Error('PayPal authentication failed');
+  }
+}
+
+async function verifyPayPalWebhook(headers: any, body: string): Promise<boolean> {
+  if (!PAYPAL_WEBHOOK_ID) {
+    console.log('No PAYPAL_WEBHOOK_ID configured, skipping verification');
+    return false;
+  }
+
+  const baseURL = PAYPAL_SANDBOX ? 'https://api.sandbox.paypal.com' : 'https://api.paypal.com';
+  
+  try {
+    const accessToken = await getPayPalAccessToken();
+    
+    const verificationData = {
+      auth_algo: headers['paypal-auth-algo'],
+      cert_id: headers['paypal-cert-id'],
+      transmission_id: headers['paypal-transmission-id'],
+      transmission_sig: headers['paypal-transmission-sig'],
+      transmission_time: headers['paypal-transmission-time'],
+      webhook_id: PAYPAL_WEBHOOK_ID,
+      webhook_event: JSON.parse(body)
+    };
+
+    const response = await axios.post(
+      `${baseURL}/v1/notifications/verify-webhook-signature`,
+      verificationData,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        }
+      }
+    );
+
+    return response.data.verification_status === 'SUCCESS';
+  } catch (error) {
+    console.error('PayPal webhook verification failed:', error);
+    return false;
+  }
+}
+
+// KeyAuth API helper functions
+async function createKeyAuthLicense(username: string, email: string, duration: number): Promise<string> {
+  try {
+    // Initialize KeyAuth session
+    const initResponse = await axios.post(KEYAUTH_CONFIG.url, {
+      type: 'init',
+      name: KEYAUTH_CONFIG.name,
+      ownerid: KEYAUTH_CONFIG.ownerid,
+      secret: KEYAUTH_CONFIG.secret,
+      version: KEYAUTH_CONFIG.version
+    });
+
+    if (!initResponse.data.success) {
+      throw new Error('KeyAuth initialization failed');
+    }
+
+    // Create license key
+    const licenseResponse = await axios.post(KEYAUTH_CONFIG.url, {
+      type: 'addkey',
+      name: KEYAUTH_CONFIG.name,
+      ownerid: KEYAUTH_CONFIG.ownerid,
+      secret: KEYAUTH_CONFIG.secret,
+      expiry: duration, // days
+      mask: 'XXXX-XXXX-XXXX-XXXX',
+      level: '1',
+      note: `PayPal subscription for ${email}`
+    });
+
+    if (!licenseResponse.data.success) {
+      throw new Error('Failed to create license key');
+    }
+
+    return licenseResponse.data.key;
+  } catch (error) {
+    console.error('KeyAuth license creation failed:', error);
+    throw error;
+  }
+}
+
+async function extendKeyAuthSubscription(username: string, duration: number): Promise<boolean> {
+  try {
+    const response = await axios.post(KEYAUTH_CONFIG.url, {
+      type: 'extend',
+      name: KEYAUTH_CONFIG.name,
+      ownerid: KEYAUTH_CONFIG.ownerid,
+      secret: KEYAUTH_CONFIG.secret,
+      username: username,
+      expiry: duration
+    });
+
+    return response.data.success;
+  } catch (error) {
+    console.error('KeyAuth subscription extension failed:', error);
+    return false;
+  }
+}
+
+async function handleSuccessfulPayment(event: any) {
+  try {
+    // Extract payment information
+    const amount = event.resource?.amount?.total || event.resource?.gross_amount?.value;
+    const currency = event.resource?.amount?.currency || event.resource?.gross_amount?.currency_code;
+    const payerEmail = event.resource?.payer?.email_address || event.resource?.payer_info?.email;
+    const paymentId = event.resource?.id;
+    
+    console.log('Processing payment:', { amount, currency, payerEmail, paymentId });
+
+    // Validate currency
+    if (currency !== 'USD') {
+      throw new Error(`Unsupported currency: ${currency}`);
+    }
+
+    // Find matching subscription plan
+    const subscriptionPlan = SUBSCRIPTION_PLANS[amount];
+    if (!subscriptionPlan) {
+      throw new Error(`Unknown subscription amount: ${amount}`);
+    }
+
+    // Generate username from email
+    const username = payerEmail.split('@')[0] + '_' + Date.now();
+
+    // Create KeyAuth license
+    const licenseKey = await createKeyAuthLicense(username, payerEmail, subscriptionPlan.duration);
+
+    console.log('License created successfully:', {
+      username,
+      email: payerEmail,
+      licenseKey,
+      plan: subscriptionPlan.plan,
+      duration: subscriptionPlan.duration
+    });
+
+    // TODO: Send license key to user via email
+    // You can integrate with your email service here
+    
+  } catch (error) {
+    console.error('Payment processing error:', error);
+    throw error;
+  }
+}
+
+async function handleSubscriptionCancellation(event: any) {
+  try {
+    const subscriptionId = event.resource?.id;
+    const payerEmail = event.resource?.subscriber?.email_address;
+    
+    console.log('Processing subscription cancellation:', { subscriptionId, payerEmail });
+    
+    // TODO: Implement subscription cancellation logic
+    // You might want to deactivate the user's license in KeyAuth
+    
+  } catch (error) {
+    console.error('Subscription cancellation error:', error);
+    throw error;
+  }
+}
+
+// Main webhook handler for Vercel
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Log all incoming requests
+  console.log('=== PayPal Webhook Request Received ===');
+  console.log('Method:', req.method);
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  console.log('Body:', req.body);
+  console.log('========================================');
+
+  if (req.method !== 'POST') {
+    console.log('Invalid method:', req.method);
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    const headers = req.headers;
+
+    // Verify PayPal webhook signature
+    const isValid = await verifyPayPalWebhook(headers, body);
+    if (!isValid) {
+      console.error('Invalid PayPal webhook signature');
+      return res.status(403).json({ error: 'Invalid webhook signature' });
+    }
+
+    const event = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    console.log('PayPal event type:', event.event_type);
+
+    // Handle different PayPal events
+    switch (event.event_type) {
+      case 'PAYMENT.SALE.COMPLETED':
+      case 'BILLING.SUBSCRIPTION.ACTIVATED':
+      case 'CHECKOUT.ORDER.APPROVED':
+        await handleSuccessfulPayment(event);
+        break;
+      
+      case 'BILLING.SUBSCRIPTION.CANCELLED':
+      case 'BILLING.SUBSCRIPTION.SUSPENDED':
+        await handleSubscriptionCancellation(event);
+        break;
+      
+      default:
+        console.log('Unhandled PayPal event type:', event.event_type);
+    }
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Webhook processing error:', error);
+    res.status(500).json({ error: 'Webhook processing failed' });
+  }
+}
