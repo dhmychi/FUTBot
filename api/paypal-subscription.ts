@@ -1,8 +1,4 @@
-import express from 'express';
-import { PayPalApi } from '@paypal/checkout-server-sdk';
 import paypal from '@paypal/checkout-server-sdk';
-
-const router = express.Router();
 
 // PayPal environment setup
 const environment = process.env.PAYPAL_SANDBOX === 'true' 
@@ -39,8 +35,26 @@ const SUBSCRIPTION_PLANS = {
   }
 };
 
+export default async function handler(req: any, res: any) {
+  const { method, url } = req;
+
+  if (method === 'POST' && url?.includes('/create-subscription')) {
+    return await createSubscription(req, res);
+  }
+  
+  if (method === 'GET' && url?.includes('/subscription/')) {
+    return await getSubscription(req, res);
+  }
+  
+  if (method === 'POST' && url?.includes('/cancel-subscription/')) {
+    return await cancelSubscription(req, res);
+  }
+
+  return res.status(404).json({ error: 'Endpoint not found' });
+}
+
 // Create subscription
-router.post('/create-subscription', async (req, res) => {
+async function createSubscription(req: any, res: any) {
   const { planType, userEmail } = req.body;
 
   if (!planType || !SUBSCRIPTION_PLANS[planType]) {
@@ -87,11 +101,11 @@ router.post('/create-subscription', async (req, res) => {
     console.error('PayPal subscription creation error:', error);
     res.status(500).json({ error: 'Failed to create subscription' });
   }
-});
+}
 
 // Get subscription details
-router.get('/subscription/:subscriptionId', async (req, res) => {
-  const { subscriptionId } = req.params;
+async function getSubscription(req: any, res: any) {
+  const subscriptionId = req.url?.split('/').pop();
 
   try {
     const request = new paypal.subscriptions.SubscriptionsGetRequest(subscriptionId);
@@ -110,11 +124,11 @@ router.get('/subscription/:subscriptionId', async (req, res) => {
     console.error('PayPal subscription fetch error:', error);
     res.status(500).json({ error: 'Failed to fetch subscription' });
   }
-});
+}
 
 // Cancel subscription
-router.post('/cancel-subscription/:subscriptionId', async (req, res) => {
-  const { subscriptionId } = req.params;
+async function cancelSubscription(req: any, res: any) {
+  const subscriptionId = req.url?.split('/').pop();
   const { reason } = req.body;
 
   try {
@@ -130,6 +144,4 @@ router.post('/cancel-subscription/:subscriptionId', async (req, res) => {
     console.error('PayPal subscription cancellation error:', error);
     res.status(500).json({ error: 'Failed to cancel subscription' });
   }
-});
-
-export default router;
+}
