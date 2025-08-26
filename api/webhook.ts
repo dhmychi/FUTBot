@@ -1,7 +1,3 @@
-export const config = {
-  runtime: 'nodejs20.x'
-};
-
 import crypto from 'crypto';
 import axios from 'axios';
 

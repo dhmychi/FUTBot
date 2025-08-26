@@ -1,7 +1,3 @@
-export const config = {
-  runtime: 'nodejs20.x'
-};
-
 import paypal from '@paypal/checkout-server-sdk';
 
 // PayPal environment setup
