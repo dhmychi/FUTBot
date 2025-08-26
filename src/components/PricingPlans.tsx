@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Check, Sparkles, Shield, Settings, Zap, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { Shield, Settings, Zap, Clock } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { SubscriptionPlan } from '../types/subscription';
 import { motion } from 'framer-motion';
 import PaymentModal from './PaymentModal';
@@ -30,44 +31,45 @@ const features = [
 const plans: SubscriptionPlan[] = [
   {
     id: '1_month',
-    name: '1 Month',
+    name: 'شهري',
     price: 15,
-    duration: '1 month',
+    duration: '1 شهر',
     features: [
-      '✨ Instant Activation',
-      '⚡ 24/7 Automated Trading',
-      '🎮 Easy Controls',
-      '🔄 Free Updates',
-      '💬 Premium Support'
+      '⚡ تفعيل فوري',
+      '🤖 تداول آلي 24/7',
+      '🎮 واجهة تحكم سهلة',
+      '🔄 تحديثات مجانية',
+      '💬 دعم فني ممتاز'
     ],
   },
   {
     id: '3_months',
-    name: '3 Months',
+    name: '3 أشهر',
     price: 24.99,
-    duration: '3 months',
+    duration: '3 أشهر',
+    popular: true,
     features: [
-      '✨ Instant Activation',
-      '⚡ 24/7 Automated Trading',
-      '🎮 Easy Controls',
-      '🔄 Free Updates',
-      '💬 Premium Support',
-      '💎 Priority Support'
+      '⚡ تفعيل فوري',
+      '🤖 تداول آلي 24/7',
+      '🎮 واجهة تحكم سهلة',
+      '🔄 تحديثات مجانية',
+      '💬 دعم فني ممتاز',
+      '💎 دعم فني متميز'
     ],
   },
   {
     id: '12_months',
-    name: '12 Months',
+    name: '12 شهر',
     price: 49.99,
-    duration: '12 months',
+    duration: '12 شهر',
     features: [
-      '✨ Instant Activation',
-      '⚡ 24/7 Automated Trading',
-      '🎮 Easy Controls',
-      '🔄 Free Updates',
-      '💬 24/7 Premium Support',
-      '💎 VIP Support',
-      '🚀 Faster Performance'
+      '⚡ تفعيل فوري',
+      '🤖 تداول آلي 24/7',
+      '🎮 واجهة تحكم سهلة',
+      '🔄 تحديثات مجانية',
+      '💬 دعم فني ممتاز',
+      '🎁 ميزات حصرية',
+      '🔒 دعم فني متميز'
     ],
   },
 ];
@@ -116,7 +118,7 @@ export default function PricingPlans({ onSelectPlan }: PricingPlansProps) {
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 max-w-6xl mx-auto px-4">
+      <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto px-4">
         {plans.map((plan, index) => (
           <motion.div
             key={plan.id}
@@ -126,52 +128,68 @@ export default function PricingPlans({ onSelectPlan }: PricingPlansProps) {
             transition={{ delay: index * 0.1 }}
             className="relative group"
           >
-            <div className="card-3d relative p-8 rounded-2xl bg-futbot-surface border border-futbot-primary/20
-                          hover:border-futbot-primary/40 transition-all duration-300">
-              <div className="absolute inset-0 bg-gradient-to-br from-futbot-primary/5 to-transparent rounded-2xl" />
-              
-              {plan.id === '12_months' && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <div className="px-4 py-1 bg-futbot-primary/20 rounded-full border border-futbot-primary/40
-                               text-futbot-primary text-sm font-medium flex items-center space-x-2">
-                    <Sparkles className="w-4 h-4" />
-                    <span>Best Value</span>
+            <div className={`relative p-8 rounded-2xl transition-all duration-300 h-full flex flex-col ${
+              plan.popular 
+                ? 'bg-gradient-to-br from-futbot-surface to-futbot-surface/80 border-2 border-futbot-primary shadow-xl shadow-futbot-primary/10' 
+                : 'bg-futbot-surface/50 border border-futbot-primary/20 hover:border-futbot-primary/40'
+            }`}>
+              <div className="flex-1">
+                {plan.popular && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-futbot-primary to-blue-500 text-white text-sm font-bold px-6 py-1 rounded-full shadow-lg">
+                    الأكثر توفيراً
                   </div>
-                </div>
-              )}
-
-              <div className="relative text-center">
-                <h3 className="text-2xl font-bold text-futbot-highlight mb-2">{plan.name}</h3>
+                )}
                 
-                <div className="flex items-baseline justify-center mt-4">
-                  <span className="text-5xl font-extrabold text-white animate-glow">${plan.price}</span>
-                  <span className="ml-2 text-xl text-gray-400">/{plan.duration}</span>
-                </div>
+                <h3 className="text-2xl font-bold text-white text-center mb-2">{plan.name}</h3>
                 
+                <div className="flex items-end justify-center space-x-2 mt-6 mb-8">
+                  <span className="text-4xl font-bold bg-gradient-to-r from-futbot-primary to-blue-400 bg-clip-text text-transparent">
+                    ${plan.price}
+                  </span>
+                  <span className="text-lg text-gray-400 mb-1">/{plan.duration}</span>
+                </div>
 
-                <div className="mt-8 space-y-4">
-                  {plan.features.map((feature) => (
-                    <div key={feature} className="flex items-center text-sm text-gray-300 justify-center">
-                      <span>{feature}</span>
+                <div className="space-y-3 mt-8">
+                  {plan.features.map((feature, idx) => (
+                    <div key={idx} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-futbot-primary/5 transition-colors">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-futbot-primary/10 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 rounded-full bg-futbot-primary"></div>
+                      </div>
+                      <span className="text-sm text-gray-300">{feature}</span>
                     </div>
                   ))}
                 </div>
+              </div>
 
+              <div className="mt-8 pt-6 border-t border-futbot-primary/10">
                 <button
                   onClick={() => handlePlanSelect(plan)}
-                  className="mt-8 w-full py-4 px-6 rounded-xl bg-futbot-primary text-white
-                           hover:bg-futbot-accent transition-all duration-300
-                           font-semibold text-lg group relative overflow-hidden
-                           transform hover:scale-105 active:scale-95 shadow-lg"
+                  className={`w-full py-3.5 px-4 rounded-xl font-medium transition-all duration-300 flex items-center justify-center space-x-3 ${
+                    plan.popular
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40'
+                      : 'bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 text-gray-200 hover:shadow-lg'
+                  }`}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-futbot-primary to-futbot-accent 
-                                opacity-0 group-hover:opacity-20 transition-opacity duration-300" />
-                  <span className="relative">Subscribe Now</span>
+                  <img 
+                    src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" 
+                    alt="PayPal" 
+                    className="h-5"
+                  />
+                  <span className="font-bold">اشترك الآن</span>
                 </button>
               </div>
             </div>
           </motion.div>
         ))}
+      </div>
+      
+      <div className="text-center mt-12 text-gray-400 text-sm">
+        <p className="flex items-center justify-center space-x-2">
+          <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+          </svg>
+          <span>مدفوعات آمنة عبر PayPal</span>
+        </p>
       </div>
 
       {selectedPlan && (
@@ -179,6 +197,14 @@ export default function PricingPlans({ onSelectPlan }: PricingPlansProps) {
           isOpen={isPaymentModalOpen}
           onClose={() => setIsPaymentModalOpen(false)}
           plan={selectedPlan}
+          onSuccess={() => {
+            // Handle successful payment (e.g., show success message, redirect, etc.)
+            toast.success('Payment successful! Your subscription is now active.');
+            // Call the parent's onSelectPlan if needed
+            onSelectPlan(selectedPlan);
+            // Close the modal after a delay
+            setTimeout(() => setIsPaymentModalOpen(false), 2000);
+          }}
         />
       )}
     </div>

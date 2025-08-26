@@ -18,5 +18,6 @@ export interface SubscriptionPlan {
   price: number;
   originalPrice?: number;
   duration: string;
+  popular?: boolean;
   features: string[];
 }

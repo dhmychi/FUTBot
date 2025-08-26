@@ -12,7 +12,7 @@
   "dependencies": {
     "@paypal/checkout-server-sdk": "^1.0.3",
     "@paypal/paypal-js": "^8.0.2",
-    "@paypal/react-paypal-js": "^8.1.4",
+    "@paypal/react-paypal-js": "^8.8.3",
     "@supabase/supabase-js": "^2.39.7",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "axios": "^1.6.7",
@@ -23,7 +23,7 @@
     "qrcode.react": "^3.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-hot-toast": "^2.4.1",
+    "react-hot-toast": "^2.6.0",
     "react-router-dom": "^6.22.2"
   },
   "engines": {
@@ -32,8 +32,8 @@
   "devDependencies": {
     "@eslint/js": "^9.9.1",
     "@types/express": "^4.17.21",
-    "@types/node": "^20.11.19",
-    "@types/react": "^18.3.5",
+    "@types/node": "^20.19.11",
+    "@types/react": "^18.3.24",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.18",

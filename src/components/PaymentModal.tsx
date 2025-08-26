@@ -1,285 +1,194 @@
-import React, { useState } from 'react';
-import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js';
-import { X, Loader2, Shield, Clock, Award } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { SubscriptionPlan } from '../types/subscription';
-// تم حذف كود supabase بالكامل. أضف هنا كود KeyAuth أو أي كود مصادقة آخر.
+import { useState } from 'react';
+import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
+import type { CreateOrderActions, OnApproveData, OnApproveActions, PayPalScriptOptions } from '@paypal/paypal-js';
 import toast from 'react-hot-toast';
 
-const CHROME_EXTENSION_URL = 'https://chromewebstore.google.com/detail/futbot/kmjemgkhfhpjfblpbcomcpbnofglmnmn?pli=1';
-const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID;
+// Define PricingPlan interface
+interface PricingPlan {
+  id: string;
+  name: string;
+  price: number;
+  duration: string;
+  features: string[];
+}
+
+// Get PayPal client ID from environment variables with type assertion
+const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || '';
+
+// PayPal script options
+const paypalScriptOptions: PayPalScriptOptions = {
+  clientId: PAYPAL_CLIENT_ID,
+  currency: 'USD',
+  intent: 'capture',
+  components: 'buttons',
+  disableFunding: 'card,credit,venmo,sepa,bancontact,eps,giropay,ideal,mybank,p24,p24,sofort',
+  dataNamespace: 'paypal_sdk',
+  dataSdkIntegrationSource: 'integrationbuilder_sc',
+  merchantId: '*',
+  vault: false,
+  debug: import.meta.env.VITE_PAYPAL_ENVIRONMENT === 'sandbox',
+};
 
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  plan: SubscriptionPlan;
+  plan: PricingPlan;
+  onSuccess: () => void;
 }
 
-export default function PaymentModal({ isOpen, onClose, plan }: PaymentModalProps) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: PaymentModalProps) {
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const validateForm = () => {
-    if (!email || !password || !confirmPassword) {
-      toast.error('Please fill in all fields');
-      return false;
-    }
-
-    if (password !== confirmPassword) {
-      toast.error('Passwords do not match');
-      return false;
-    }
-
-    if (password.length < 6) {
-      toast.error('Password must be at least 6 characters');
-      return false;
-    }
-
-    return true;
-  };
-
-  const handlePayPalPayment = async (data: any, actions: any) => {
+  const handlePayPalPayment = async (_data: Record<string, unknown>, actions: CreateOrderActions): Promise<string> => {
     try {
-      if (!validateForm()) {
-        return actions.reject();
-      }
-
       setIsProcessing(true);
-
-      // Create user account first
-      // تم حذف كود supabase بالكامل. أضف هنا كود KeyAuth أو أي كود مصادقة آخر.
-      // const { data: authData, error: authError } = await supabase.auth.signUp({
-      //   email,
-      //   password,
-      // });
-
-      // if (authError) throw authError;
-
-      // Calculate subscription end date
-      const endDate = calculateEndDate(plan.duration);
-
-      // Create subscription record
-      // تم حذف كود supabase بالكامل. أضف هنا كود KeyAuth أو أي كود مصادقة آخر.
-      // const { data: subscription, error: dbError } = await supabase
-      //   .from('user_subscriptions')
-      //   .insert([
-      //     {
-      //       email,
-      //       auth_user_id: authData.user?.id,
-      //       subscription_type: plan.id,
-      //       amount_paid: plan.price,
-      //       payment_method: 'paypal',
-      //       payment_status: 'pending',
-      //       start_date: new Date().toISOString(),
-      //       end_date: endDate,
-      //     }
-      //   ])
-      //   .select()
-      //   .single();
-
-      // if (dbError) throw dbError;
-
-      // Create PayPal order
-      return actions.order.create({
+      
+      // Create PayPal order with the plan details
+      const order = await actions.order.create({
+        intent: 'CAPTURE',
         purchase_units: [{
           amount: {
             value: plan.price.toString(),
-            currency_code: 'USD'
+            currency_code: 'USD',
           },
           description: `FUTBot ${plan.name} Subscription`,
-          custom_id: 'dummy_subscription_id' // Placeholder, replace with actual subscription ID
-        }]
+          custom_id: `futbot_${plan.id}_${Date.now()}`,
+        }],
+        application_context: {
+          brand_name: 'FUTBot',
+          user_action: 'PAY_NOW',
+          payment_method: {
+            payee_preferred: 'IMMEDIATE_PAYMENT_REQUIRED'
+          },
+        },
       });
-    } catch (error: any) {
+      
+      return order;
+    } catch (error) {
       console.error('PayPal error:', error);
-      toast.error(error.message || 'Payment failed. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Payment processing failed';
+      toast.error(`Error: ${errorMessage}`);
       setIsProcessing(false);
-      return actions.reject();
+      throw error;
     }
   };
 
-  const handlePayPalApprove = async (data: any, actions: any) => {
+  const handlePayPalApprove = async (_data: OnApproveData, actions: OnApproveActions) => {
+    if (!actions.order) {
+      toast.error('Invalid order action');
+      setIsProcessing(false);
+      return;
+    }
+    
     try {
-      const order = await actions.order.capture();
+      // Capture the payment
+      const details = await actions.order.capture();
+      console.log('Payment completed successfully', details);
       
-      // Update subscription status
-      // تم حذف كود supabase بالكامل. أضف هنا كود KeyAuth أو أي كود مصادقة آخر.
-      // const { error } = await supabase
-      //   .from('user_subscriptions')
-      //   .update({ 
-      //     payment_status: 'completed',
-      //     paypal_order_id: order.id,
-      //     paypal_payer_id: order.payer.payer_id
-      //   })
-      //   .eq('email', email);
-
-      // if (error) throw error;
-
-      toast.success('Payment successful! You can now log in to use FUTBot.');
-      onClose();
-      // Redirect to extension download or show success message
-      window.open(CHROME_EXTENSION_URL, '_blank');
-    } catch (error: any) {
-      console.error('PayPal approval error:', error);
-      toast.error('Payment verification failed. Please contact support.');
+      // Show success message
+      toast.success('Payment successful! Your subscription is being activated.');
+      
+      // Call the success callback
+      onSuccess();
+      
+      // Close the modal after a short delay
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Payment approval error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Payment processing failed';
+      toast.error(`Error: ${errorMessage}`);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const calculateEndDate = (duration: string): string => {
-    const now = new Date();
-    switch (duration) {
-      case '3 months':
-        return new Date(now.setMonth(now.getMonth() + 3)).toISOString();
-      case '6 months':
-        return new Date(now.setMonth(now.getMonth() + 6)).toISOString();
-      case '1 year':
-        return new Date(now.setFullYear(now.getFullYear() + 1)).toISOString();
-      default:
-        return new Date(now.setMonth(now.getMonth() + 1)).toISOString();
-    }
-  };
+  if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={onClose}
-          />
-          
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="relative bg-futbot-surface border border-futbot-primary/20 rounded-2xl p-8 w-full max-w-md
-                     shadow-xl z-50"
-          >
-            <button
-              onClick={onClose}
-              disabled={isProcessing}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors
-                       disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="text-center mb-8">
-              <h3 className="text-3xl font-bold text-white mb-2">Almost There! 🚀</h3>
-              <div className="bg-futbot-primary/10 rounded-lg p-4 mt-4">
-                <p className="text-xl font-semibold text-futbot-primary mb-2">
-                  {plan.name} Subscription
-                </p>
-                <p className="text-2xl font-bold text-white">
-                  ${plan.price}
-                  <span className="text-sm text-gray-400 ml-1">/{plan.duration}</span>
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-lg bg-futbot-surface-light border border-futbot-primary/20
-                           text-white placeholder-gray-500 px-4 py-3
-                           focus:ring-2 focus:ring-futbot-primary focus:border-futbot-primary
-                           transition-colors duration-200"
-                  placeholder="Email address"
-                  required
-                />
-
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-lg bg-futbot-surface-light border border-futbot-primary/20
-                           text-white placeholder-gray-500 px-4 py-3
-                           focus:ring-2 focus:ring-futbot-primary focus:border-futbot-primary
-                           transition-colors duration-200"
-                  placeholder="Create password (min. 6 characters)"
-                  required
-                />
-
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full rounded-lg bg-futbot-surface-light border border-futbot-primary/20
-                           text-white placeholder-gray-500 px-4 py-3
-                           focus:ring-2 focus:ring-futbot-primary focus:border-futbot-primary
-                           transition-colors duration-200"
-                  placeholder="Confirm password"
-                  required
-                />
-              </div>
-
-              {isProcessing && (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 className="w-6 h-6 text-futbot-primary animate-spin" />
-                  <span className="ml-2 text-gray-400">Processing payment...</span>
-                </div>
-              )}
-
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-[#003087] to-[#009cde] opacity-10 rounded-lg" />
-                <PayPalScriptProvider options={{
-                  "client-id": PAYPAL_CLIENT_ID,
-                  currency: "USD",
-                  intent: "capture"
-                }}>
-                  <PayPalButtons
-                    style={{ 
-                      layout: 'vertical',
-                      shape: 'rect',
-                      color: 'blue'
-                    }}
-                    createOrder={handlePayPalPayment}
-                    onApprove={handlePayPalApprove}
-                    onError={(err) => {
-                      console.error('PayPal Error:', err);
-                      toast.error('PayPal payment failed. Please try again.');
-                      setIsProcessing(false);
-                    }}
-                    onCancel={() => {
-                      toast.info('Payment cancelled');
-                      setIsProcessing(false);
-                    }}
-                  />
-                </PayPalScriptProvider>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 pt-4">
-                <div className="text-center">
-                  <Shield className="w-6 h-6 text-futbot-primary mx-auto mb-2" />
-                  <p className="text-xs text-gray-400">Secure Payment</p>
-                </div>
-                <div className="text-center">
-                  <Clock className="w-6 h-6 text-futbot-primary mx-auto mb-2" />
-                  <p className="text-xs text-gray-400">Instant Access</p>
-                </div>
-                <div className="text-center">
-                  <Award className="w-6 h-6 text-futbot-primary mx-auto mb-2" />
-                  <p className="text-xs text-gray-400">Premium Support</p>
-                </div>
-              </div>
-
-              <p className="text-xs text-gray-400 text-center">
-                By completing your purchase, you agree to our Terms of Service and Privacy Policy
-              </p>
-            </div>
-          </motion.div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div 
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      
+      <div className="relative bg-futbot-surface border border-futbot-primary/20 rounded-2xl p-8 w-full max-w-md shadow-xl z-50">
+        <button
+          onClick={onClose}
+          disabled={isProcessing}
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <img 
+              src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" 
+              alt="PayPal" 
+              className="h-12"
+            />
+          </div>
+          <h3 className="text-2xl font-bold text-white mb-2">Complete Your Purchase</h3>
+          <p className="text-gray-300 text-lg">{plan.name}</p>
+          <p className="text-futbot-primary text-3xl font-bold my-3">${plan.price}</p>
+          <div className="h-px bg-gradient-to-r from-transparent via-futbot-primary/30 to-transparent my-4"></div>
         </div>
-      )}
-    </AnimatePresence>
+
+        <div className="mb-6">
+          <PayPalScriptProvider options={paypalScriptOptions}>
+            <div className="space-y-4">
+              <PayPalButtons
+                style={{ 
+                  layout: 'vertical',
+                  color: 'blue',
+                  shape: 'pill',
+                  label: 'pay',
+                  height: 48,
+                  tagline: false
+                }}
+                createOrder={handlePayPalPayment}
+                onApprove={handlePayPalApprove}
+                onError={(err) => {
+                  console.error('PayPal error:', err);
+                  toast.error('حدث خطأ في معالجة الدفع. يرجى المحاولة مرة أخرى.');
+                  setIsProcessing(false);
+                }}
+                onCancel={() => {
+                  toast('تم إلغاء عملية الدفع', { icon: 'ℹ️' });
+                  setIsProcessing(false);
+                }}
+                disabled={isProcessing}
+                forceReRender={[plan.id, isProcessing]}
+              />
+              <div className="flex items-center justify-center space-x-2 text-gray-400 text-sm">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                </svg>
+                <span>مدفوعات آمنة عبر PayPal</span>
+              </div>
+            </div>
+          </PayPalScriptProvider>
+        </div>
+
+        <div className="text-center text-sm text-gray-400 mt-6 pt-4 border-t border-gray-700">
+          <p className="flex items-center justify-center space-x-1">
+            <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            <span>تفعيل فوري</span>
+          </p>
+          <p className="flex items-center justify-center space-x-1 mt-1">
+            <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+            </svg>
+            <span>ضمان استرداد الأموال لمدة 7 أيام</span>
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
