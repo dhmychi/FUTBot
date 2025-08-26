@@ -1,3 +1,7 @@
+export const config = {
+  runtime: 'nodejs20.x'
+};
+
 import paypal from '@paypal/checkout-server-sdk';
 
 // PayPal environment setup
@@ -35,22 +39,25 @@ const SUBSCRIPTION_PLANS = {
   }
 };
 
+// Main handler for Vercel serverless function
 export default async function handler(req: any, res: any) {
-  const { method, url } = req;
+  const { method, query, body } = req;
 
-  if (method === 'POST' && url?.includes('/create-subscription')) {
-    return await createSubscription(req, res);
+  try {
+    // Handle different HTTP methods and routes
+    if (method === 'POST' && query.action === 'create-subscription') {
+      return await createSubscription(req, res);
+    } else if (method === 'GET' && query.subscriptionId) {
+      return await getSubscription(req, res);
+    } else if (method === 'POST' && query.action === 'cancel-subscription') {
+      return await cancelSubscription(req, res);
+    } else {
+      return res.status(404).json({ error: 'Route not found' });
+    }
+  } catch (error) {
+    console.error('PayPal subscription API error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
-  
-  if (method === 'GET' && url?.includes('/subscription/')) {
-    return await getSubscription(req, res);
-  }
-  
-  if (method === 'POST' && url?.includes('/cancel-subscription/')) {
-    return await cancelSubscription(req, res);
-  }
-
-  return res.status(404).json({ error: 'Endpoint not found' });
 }
 
 // Create subscription
@@ -91,7 +98,7 @@ async function createSubscription(req: any, res: any) {
       link => link.rel === 'approve'
     )?.href;
 
-    res.json({
+    return res.json({
       subscriptionId: response.result.id,
       approvalUrl: approvalUrl,
       status: response.result.status
@@ -99,19 +106,19 @@ async function createSubscription(req: any, res: any) {
 
   } catch (error) {
     console.error('PayPal subscription creation error:', error);
-    res.status(500).json({ error: 'Failed to create subscription' });
+    return res.status(500).json({ error: 'Failed to create subscription' });
   }
 }
 
 // Get subscription details
 async function getSubscription(req: any, res: any) {
-  const subscriptionId = req.url?.split('/').pop();
+  const { subscriptionId } = req.query;
 
   try {
     const request = new paypal.subscriptions.SubscriptionsGetRequest(subscriptionId);
     const response = await client.execute(request);
 
-    res.json({
+    return res.json({
       id: response.result.id,
       status: response.result.status,
       plan_id: response.result.plan_id,
@@ -122,13 +129,13 @@ async function getSubscription(req: any, res: any) {
 
   } catch (error) {
     console.error('PayPal subscription fetch error:', error);
-    res.status(500).json({ error: 'Failed to fetch subscription' });
+    return res.status(500).json({ error: 'Failed to fetch subscription' });
   }
 }
 
 // Cancel subscription
 async function cancelSubscription(req: any, res: any) {
-  const subscriptionId = req.url?.split('/').pop();
+  const { subscriptionId } = req.query;
   const { reason } = req.body;
 
   try {
@@ -138,10 +145,10 @@ async function cancelSubscription(req: any, res: any) {
     });
 
     await client.execute(request);
-    res.json({ success: true, message: 'Subscription cancelled successfully' });
+    return res.json({ success: true, message: 'Subscription cancelled successfully' });
 
   } catch (error) {
     console.error('PayPal subscription cancellation error:', error);
-    res.status(500).json({ error: 'Failed to cancel subscription' });
+    return res.status(500).json({ error: 'Failed to cancel subscription' });
   }
 }

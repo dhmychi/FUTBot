@@ -1,8 +1,6 @@
 export default function handler(req: any, res: any) {
-  res.status(200).json({ 
-    message: 'FUTBot API running',
-    timestamp: new Date().toISOString(),
-    method: req.method,
-    url: req.url
-  });
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+  return res.status(200).send('FUTBot API running');
 }
