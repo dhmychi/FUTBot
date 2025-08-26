@@ -177,13 +177,15 @@ async function handleSuccessfulPayment(event: any) {
 
     // Validate currency
     if (currency !== 'USD') {
-      throw new Error(`Unsupported currency: ${currency}`);
+      console.warn(`Unsupported currency received (${currency}), ignoring event.`);
+      return; // don't fail the webhook, just ignore
     }
 
     // Find matching subscription plan
     const subscriptionPlan = SUBSCRIPTION_PLANS[amount];
     if (!subscriptionPlan) {
-      throw new Error(`Unknown subscription amount: ${amount}`);
+      console.warn(`Unknown subscription amount (${amount}), ignoring event.`);
+      return; // ignore unrecognized simulator/test amounts
     }
 
     // Generate username from email
@@ -254,7 +256,8 @@ export default async function handler(req: any, res: any) {
     const botCategory = (getHeader(headers, 'x-vercel-internal-bot-category') || '').toLowerCase();
     const isVercelPaypalBot = botName === 'paypal' && botCategory === 'webhook';
     if (isVercelPaypalBot) {
-      console.warn('[Webhook] Detected Vercel internal PayPal simulator — skipping signature verification.');
+      console.warn('[Webhook] Detected Vercel internal PayPal simulator — skipping signature verification and processing.');
+      return res.status(200).json({ success: true, skipped: 'vercel_simulator' });
     }
 
     // Verify PayPal webhook signature
