@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
   console.log('PayPal Client ID from Vite Config:', env.VITE_PAYPAL_CLIENT_ID);
   
   return {
+    base: './', // Use relative paths
     plugins: [react()],
     define: {
       'import.meta.env': {
@@ -18,12 +19,37 @@ export default defineConfig(({ mode }) => {
         VITE_PAYPAL_CLIENT_SECRET: JSON.stringify(env.VITE_PAYPAL_CLIENT_SECRET)
       }
     },
-    optimizeDeps: {
-      exclude: ['lucide-react'],
-    },
     server: {
       port: 3000,
-      strictPort: true
+      strictPort: true,
+      host: true,
+      fs: {
+        // Allow serving files from one level up from the package root
+        allow: ['..']
+      }
+    },
+    build: {
+      outDir: 'dist',
+      assetsDir: 'assets',
+      sourcemap: true,
+      emptyOutDir: true,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            react: ['react', 'react-dom', 'react-router-dom'],
+            vendor: ['@paypal/react-paypal-js', 'axios']
+          }
+        }
+      }
+    },
+    resolve: {
+      alias: {
+        '@': '/src'
+      }
+    },
+    optimizeDeps: {
+      exclude: ['lucide-react'],
+      include: ['react', 'react-dom']
     }
   };
 });

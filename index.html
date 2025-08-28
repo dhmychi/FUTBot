@@ -8,6 +8,34 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module">
+      try {
+        // Try to load the main entry point
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.src = './src/main.tsx';
+        script.onerror = (e) => {
+          console.error('Failed to load main module:', e);
+          document.getElementById('root').innerHTML = `
+            <div style="padding: 20px; font-family: Arial, sans-serif; color: #ff4444;">
+              <h2>Application Error</h2>
+              <p>Failed to load the application. Please try refreshing the page.</p>
+              <p>If the problem persists, please contact support.</p>
+              <p>Error details: ${e.message}</p>
+            </div>
+          `;
+        };
+        document.body.appendChild(script);
+      } catch (error) {
+        console.error('Error initializing application:', error);
+        document.getElementById('root').innerHTML = `
+          <div style="padding: 20px; font-family: Arial, sans-serif; color: #ff4444;">
+            <h2>Initialization Error</h2>
+            <p>Failed to initialize the application.</p>
+            <p>${error.message}</p>
+          </div>
+        `;
+      }
+    </script>
   </body>
 </html>
