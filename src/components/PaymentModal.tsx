@@ -102,6 +102,7 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
         <button
           onClick={onClose}
           disabled={isProcessing}
+          className="absolute top-4 right-4 text-gray-400 hover:text-white"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -154,8 +155,7 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
                     setIsProcessing(false);
                   }}
                 />
-                )}
-              </div>
+              )}
             </div>
             <div className="flex items-center justify-center space-x-2 text-gray-400 text-sm mt-4">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
