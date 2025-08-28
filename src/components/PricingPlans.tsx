@@ -31,45 +31,45 @@ const features = [
 const plans: SubscriptionPlan[] = [
   {
     id: '1_month',
-    name: 'شهري',
+    name: 'Monthly',
     price: 15,
-    duration: '1 شهر',
+    duration: '1 month',
     features: [
-      '⚡ تفعيل فوري',
-      '🤖 تداول آلي 24/7',
-      '🎮 واجهة تحكم سهلة',
-      '🔄 تحديثات مجانية',
-      '💬 دعم فني ممتاز'
+      '⚡ Instant Activation',
+      '🤖 24/7 Automated Trading',
+      '🎮 Easy Control Panel',
+      '🔄 Free Updates',
+      '💬 Premium Support'
     ],
   },
   {
     id: '3_months',
-    name: '3 أشهر',
+    name: '3 Months',
     price: 24.99,
-    duration: '3 أشهر',
+    duration: '3 months',
     popular: true,
     features: [
-      '⚡ تفعيل فوري',
-      '🤖 تداول آلي 24/7',
-      '🎮 واجهة تحكم سهلة',
-      '🔄 تحديثات مجانية',
-      '💬 دعم فني ممتاز',
-      '💎 دعم فني متميز'
+      '⚡ Instant Activation',
+      '🤖 24/7 Automated Trading',
+      '🎮 Easy Control Panel',
+      '🔄 Free Updates',
+      '💬 Premium Support',
+      '💎 Priority Support'
     ],
   },
   {
     id: '12_months',
-    name: '12 شهر',
+    name: '12 Months',
     price: 49.99,
-    duration: '12 شهر',
+    duration: '12 months',
     features: [
-      '⚡ تفعيل فوري',
-      '🤖 تداول آلي 24/7',
-      '🎮 واجهة تحكم سهلة',
-      '🔄 تحديثات مجانية',
-      '💬 دعم فني ممتاز',
-      '🎁 ميزات حصرية',
-      '🔒 دعم فني متميز'
+      '⚡ Instant Activation',
+      '🤖 24/7 Automated Trading',
+      '🎮 Easy Control Panel',
+      '🔄 Free Updates',
+      '💬 Premium Support',
+      '🎁 Exclusive Features',
+      '🔒 Priority Support'
     ],
   },
 ];
@@ -136,7 +136,7 @@ export default function PricingPlans({ onSelectPlan }: PricingPlansProps) {
               <div className="flex-1">
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-futbot-primary to-blue-500 text-white text-sm font-bold px-6 py-1 rounded-full shadow-lg">
-                    الأكثر توفيراً
+                    Best Value
                   </div>
                 )}
                 
@@ -175,7 +175,7 @@ export default function PricingPlans({ onSelectPlan }: PricingPlansProps) {
                     alt="PayPal" 
                     className="h-5"
                   />
-                  <span className="font-bold">اشترك الآن</span>
+                  <span className="font-bold">Subscribe Now</span>
                 </button>
               </div>
             </div>
@@ -188,7 +188,7 @@ export default function PricingPlans({ onSelectPlan }: PricingPlansProps) {
           <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
             <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
           </svg>
-          <span>مدفوعات آمنة عبر PayPal</span>
+          <span>Secure payments via PayPal</span>
         </p>
       </div>
 
