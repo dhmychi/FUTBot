@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
-import type { CreateOrderActions, OnApproveData, OnApproveActions, PayPalScriptOptions } from '@paypal/paypal-js';
+import { PayPalButtons } from '@paypal/react-paypal-js';
+import type { CreateOrderActions, OnApproveData, OnApproveActions } from '@paypal/paypal-js';
 import toast from 'react-hot-toast';
 
 // Define PricingPlan interface
@@ -12,22 +12,6 @@ interface PricingPlan {
   features: string[];
 }
 
-// Get PayPal client ID from environment variables with type assertion
-const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || '';
-
-// PayPal script options
-const paypalScriptOptions: PayPalScriptOptions = {
-  clientId: PAYPAL_CLIENT_ID,
-  currency: 'USD',
-  intent: 'capture',
-  components: 'buttons',
-  disableFunding: 'card,credit,venmo,sepa,bancontact,eps,giropay,ideal,mybank,p24,p24,sofort',
-  dataNamespace: 'paypal_sdk',
-  dataSdkIntegrationSource: 'integrationbuilder_sc',
-  // Remove merchantId since we don't have a specific merchant ID
-  vault: false,
-  debug: import.meta.env.VITE_PAYPAL_ENVIRONMENT === 'sandbox',
-};
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -139,39 +123,47 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
         </div>
 
         <div className="mb-6">
-          <PayPalScriptProvider options={paypalScriptOptions}>
-            <div className="space-y-4">
-              <PayPalButtons
-                style={{ 
-                  layout: 'vertical',
-                  color: 'blue',
-                  shape: 'pill',
-                  label: 'pay',
-                  height: 48,
-                  tagline: false
-                }}
-                createOrder={handlePayPalPayment}
-                onApprove={handlePayPalApprove}
-                onError={(err) => {
-                  console.error('PayPal error:', err);
-                  toast.error('Payment processing error. Please try again.');
-                  setIsProcessing(false);
-                }}
-                onCancel={() => {
-                  toast('Payment cancelled', { icon: 'ℹ️' });
-                  setIsProcessing(false);
-                }}
-                disabled={isProcessing}
-                forceReRender={[plan.id, isProcessing]}
-              />
-              <div className="flex items-center justify-center space-x-2 text-gray-400 text-sm">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                </svg>
-                <span>Secure payments via PayPal</span>
+          <div className="space-y-4">
+            <div className="min-h-[200px] flex flex-col items-center justify-center">
+              {isProcessing ? (
+                <div className="flex flex-col items-center justify-center p-4">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+                  <p className="text-white">Processing your payment...</p>
+                </div>
+              ) : (
+                <PayPalButtons
+                  style={{ 
+                    layout: 'vertical',
+                    color: 'blue',
+                    shape: 'pill',
+                    label: 'pay',
+                    height: 48,
+                    tagline: false
+                  }}
+                  disabled={isProcessing}
+                  forceReRender={[plan.id, isProcessing]}
+                  createOrder={handlePayPalPayment}
+                  onApprove={handlePayPalApprove}
+                  onError={(err) => {
+                    console.error('PayPal error:', err);
+                    toast.error('Payment processing error. Please try again.');
+                    setIsProcessing(false);
+                  }}
+                  onCancel={() => {
+                    toast('Payment cancelled', { icon: 'ℹ️' });
+                    setIsProcessing(false);
+                  }}
+                />
+                )}
               </div>
             </div>
-          </PayPalScriptProvider>
+            <div className="flex items-center justify-center space-x-2 text-gray-400 text-sm mt-4">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+              </svg>
+              <span>Secure payments via PayPal</span>
+            </div>
+          </div>
         </div>
 
         <div className="text-center text-sm text-gray-400 mt-6 pt-4 border-t border-gray-700">
