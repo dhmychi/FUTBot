@@ -72,7 +72,7 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
     
     // Add script to load PayPal SDK
     const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD&intent=capture`;
+    script.src = `https://www.paypal.com/sdk/js?client-id=${import.meta.env.VITE_PAYPAL_CLIENT_ID}&currency=USD&intent=capture`;
     script.async = true;
     script.onload = () => setSdkReady(true);
     script.onerror = () => {
@@ -202,7 +202,7 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
               {sdkReady ? (
                 <PayPalScriptProvider 
                   options={{
-                    clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
+                    clientId: import.meta.env.VITE_PAYPAL_CLIENT_ID || '',
                     currency: 'USD',
                     intent: 'capture',
                     components: 'buttons',
