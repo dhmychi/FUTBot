@@ -3,9 +3,11 @@ import { PayPalScriptProvider, PayPalButtons, usePayPalScriptReducer } from '@pa
 import type { CreateOrderActions, OnApproveData, OnApproveActions, PayPalScriptOptions } from '@paypal/paypal-js';
 import toast from 'react-hot-toast';
 
+import type { PayPalNamespace } from '@paypal/paypal-js';
+
 declare global {
   interface Window {
-    paypal: any;
+    paypal?: PayPalNamespace | null;
   }
 }
 
@@ -72,18 +74,47 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
     
     // Add script to load PayPal SDK
     const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=${import.meta.env.VITE_PAYPAL_CLIENT_ID}&currency=USD&intent=capture`;
+    const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID;
+    
+    if (!clientId) {
+      setError('PayPal client ID is not configured');
+      toast.error('Payment system configuration error. Please contact support.');
+      return;
+    }
+    
+    script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}` +
+      '&currency=USD' +
+      '&intent=capture' +
+      '&components=buttons' +
+      '&disable-funding=card,credit,paylater,venmo' +
+      '&debug=true';
+      
+    script.setAttribute('data-env', 'sandbox');
     script.async = true;
-    script.onload = () => setSdkReady(true);
-    script.onerror = () => {
+    
+    const handleLoad = () => {
+      if (!window.paypal) {
+        setError('PayPal SDK failed to load properly');
+        toast.error('Failed to initialize payment system. Please refresh the page.');
+        return;
+      }
+      setSdkReady(true);
+    };
+    
+    const handleError = () => {
       setError('Failed to load PayPal SDK');
       toast.error('Failed to load payment processor. Please try again later.');
     };
+    
+    script.onload = handleLoad;
+    script.onerror = handleError;
     
     document.body.appendChild(script);
     
     return () => {
       // Cleanup
+      script.onload = null;
+      script.onerror = null;
       if (document.body.contains(script)) {
         document.body.removeChild(script);
       }

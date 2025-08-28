@@ -5,7 +5,7 @@ import axios from 'axios';
 const PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID || '';
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || '';
 const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || '';
-const PAYPAL_SANDBOX = process.env.PAYPAL_SANDBOX === 'true';
+const PAYPAL_SANDBOX = process.env.PAYPAL_SANDBOX !== 'false'; // Default to true if not set
 
 // Helper to safely read header values (handles string | string[])
 function getHeader(headers: any, name: string): string | undefined {
@@ -34,41 +34,118 @@ const SUBSCRIPTION_PLANS = {
 };
 
 // PayPal API helper functions
-async function getPayPalAccessToken(): Promise<string> {
-  const baseURL = PAYPAL_SANDBOX ? 'https://api.sandbox.paypal.com' : 'https://api.paypal.com';
+async function getPayPalAccessToken(): Promise<string | null> {
+  const baseURL = PAYPAL_SANDBOX 
+    ? 'https://api.sandbox.paypal.com' 
+    : 'https://api.paypal.com';
+
+  console.log(`🔑 Requesting PayPal access token from: ${baseURL}`);
+  
+  if (!PAYPAL_CLIENT_ID || !PAYPAL_CLIENT_SECRET) {
+    console.error('❌ Missing PayPal API credentials. Please check your environment variables.');
+    console.error(`CLIENT_ID: ${PAYPAL_CLIENT_ID ? '***' : 'MISSING'}`);
+    console.error(`CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET ? '***' : 'MISSING'}`);
+    return null;
+  }
   
   try {
-    const response = await axios.post(`${baseURL}/v1/oauth2/token`, 
+    const startTime = Date.now();
+    const response = await axios.post(
+      `${baseURL}/v1/oauth2/token`,
       'grant_type=client_credentials',
       {
         headers: {
           'Accept': 'application/json',
           'Accept-Language': 'en_US',
-          'Content-Type': 'application/x-www-form-urlencoded'
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'PayPal-Request-Id': `token-${Date.now()}`
         },
         auth: {
           username: PAYPAL_CLIENT_ID,
           password: PAYPAL_CLIENT_SECRET
-        }
+        },
+        timeout: 10000 // 10 second timeout
       }
     );
+
+    const responseTime = Date.now() - startTime;
+    
+    if (!response.data.access_token) {
+      console.error('❌ No access token in PayPal response:', response.data);
+      return null;
+    }
+
+    console.log(`✅ Successfully obtained PayPal access token (${responseTime}ms)`);
+    console.log(`   Token expires in: ${response.data.expires_in || 'unknown'} seconds`);
+    
     return response.data.access_token;
-  } catch (error) {
-    console.error('Failed to get PayPal access token:', error);
-    throw new Error('PayPal authentication failed');
+    
+  } catch (error: any) {
+    const errorDetails = {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: {
+          ...error.config?.headers,
+          Authorization: '***REDACTED***'
+        }
+      }
+    };
+    
+    console.error('❌ Failed to get PayPal access token:', JSON.stringify(errorDetails, null, 2));
+    
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      console.error('PayPal API Error Response:', {
+        status: error.response.status,
+        headers: error.response.headers,
+        data: error.response.data
+      });
+      
+      if (error.response.status === 401) {
+        console.error('❌ Authentication failed. Please verify your PayPal API credentials.');
+        console.error('   Make sure you are using the correct client ID and secret for the', 
+          PAYPAL_SANDBOX ? 'SANDBOX' : 'PRODUCTION', 'environment');
+      }
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error('No response received from PayPal API. Check your network connection.');
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.error('Request setup error:', error.message);
+    }
+    
+    return null;
   }
 }
 
 async function verifyPayPalWebhook(headers: any, body: string): Promise<boolean> {
+  console.log('🔍 Starting webhook verification...');
+  
   if (!PAYPAL_WEBHOOK_ID) {
-    console.log('No PAYPAL_WEBHOOK_ID configured, skipping verification');
+    console.error('❌ No PAYPAL_WEBHOOK_ID configured in environment variables');
     return false;
   }
 
-  const baseURL = PAYPAL_SANDBOX ? 'https://api.sandbox.paypal.com' : 'https://api.paypal.com';
+  const baseURL = PAYPAL_SANDBOX 
+    ? 'https://api.sandbox.paypal.com' 
+    : 'https://api.paypal.com';
+  
+  console.log(`🌐 Using PayPal ${PAYPAL_SANDBOX ? 'Sandbox' : 'Production'} API: ${baseURL}`);
   
   try {
+    console.log('🔑 Getting PayPal access token...');
     const accessToken = await getPayPalAccessToken();
+    
+    if (!accessToken) {
+      console.error('❌ Failed to get PayPal access token');
+      return false;
+    }
     
     const auth_algo = getHeader(headers, 'paypal-auth-algo');
     const cert_url = getHeader(headers, 'paypal-cert-url');
@@ -76,8 +153,32 @@ async function verifyPayPalWebhook(headers: any, body: string): Promise<boolean>
     const transmission_sig = getHeader(headers, 'paypal-transmission-sig');
     const transmission_time = getHeader(headers, 'paypal-transmission-time');
 
+    // Log all headers for debugging
+    console.log('📋 Webhook Headers:', {
+      'paypal-auth-algo': auth_algo ? '***' : 'MISSING',
+      'paypal-cert-url': cert_url ? '***' : 'MISSING',
+      'paypal-transmission-id': transmission_id ? '***' : 'MISSING',
+      'paypal-transmission-sig': transmission_sig ? '***' : 'MISSING',
+      'paypal-transmission-time': transmission_time || 'MISSING'
+    });
+
+    if (!auth_algo || !transmission_id || !transmission_sig || !transmission_time) {
+      console.error('❌ Missing required PayPal webhook headers');
+      return false;
+    }
+
     if (!cert_url) {
-      console.warn('[Webhook] Missing paypal-cert-url header — PayPal verification may fail with 400.');
+      console.warn('⚠️ Missing paypal-cert-url header - this may cause verification to fail');
+    }
+
+    // Parse the webhook event for logging (without sensitive data)
+    let webhookEvent;
+    try {
+      webhookEvent = JSON.parse(body);
+      console.log('📨 Webhook Event Type:', webhookEvent.event_type || 'UNKNOWN');
+    } catch (e) {
+      console.error('❌ Failed to parse webhook body as JSON');
+      return false;
     }
 
     const verificationData = {
@@ -87,23 +188,46 @@ async function verifyPayPalWebhook(headers: any, body: string): Promise<boolean>
       transmission_sig,
       transmission_time,
       webhook_id: PAYPAL_WEBHOOK_ID,
-      webhook_event: JSON.parse(body)
-    } as any;
+      webhook_event: webhookEvent
+    };
 
+    console.log('🔍 Verifying webhook signature with PayPal...');
     const response = await axios.post(
       `${baseURL}/v1/notifications/verify-webhook-signature`,
       verificationData,
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        }
+          'Authorization': `Bearer ${accessToken}`,
+          'PayPal-Request-Id': `webhook-verification-${Date.now()}`
+        },
+        timeout: 10000 // 10 second timeout
       }
     );
 
-    return response.data.verification_status === 'SUCCESS';
-  } catch (error) {
-    console.error('PayPal webhook verification failed:', error);
+    const verificationStatus = response.data.verification_status;
+    console.log('✅ Webhook verification result:', {
+      status: verificationStatus,
+      statusCode: response.status,
+      data: response.data
+    });
+
+    return verificationStatus === 'SUCCESS';
+    
+  } catch (error: any) {
+    console.error('❌ Webhook verification failed:', {
+      error: error.message,
+      response: error.response?.data || 'No response data',
+      status: error.response?.status,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: {
+          ...error.config?.headers,
+          Authorization: error.config?.headers?.Authorization ? '***' : 'MISSING'
+        }
+      }
+    });
     return false;
   }
 }
@@ -229,11 +353,29 @@ async function handleSubscriptionCancellation(event: any) {
 
 // Main webhook handler for Vercel
 export default async function handler(req: any, res: any) {
-  // Log all incoming requests
-  console.log('=== PayPal Webhook Request Received ===');
+  // Log all incoming requests (sanitized for production)
+  console.log('=== PayPal Webhook Request ===');
   console.log('Method:', req.method);
-  console.log('Headers:', JSON.stringify(req.headers, null, 2));
-  console.log('Body:', req.body);
+  console.log('Environment:', PAYPAL_SANDBOX ? 'SANDBOX' : 'PRODUCTION');
+  
+  // Sanitize headers for logging
+  const logHeaders = { ...req.headers };
+  if (logHeaders.authorization) {
+    logHeaders.authorization = '***REDACTED***';
+  }
+  
+  console.log('Headers:', JSON.stringify(logHeaders, null, 2));
+  
+  // Sanitize body for logging
+  let logBody = req.body;
+  if (typeof logBody === 'object' && logBody !== null) {
+    logBody = { ...logBody };
+    if (logBody.resource) {
+      logBody.resource = '***RESOURCE DATA***';
+    }
+  }
+  console.log('Body Type:', typeof req.body);
+  console.log('Body:', JSON.stringify(logBody, null, 2));
   console.log('========================================');
 
   if (req.method !== 'POST') {
@@ -262,10 +404,24 @@ export default async function handler(req: any, res: any) {
 
     // Verify PayPal webhook signature
     if (!skipVerify && !isVercelPaypalBot) {
-      const isValid = await verifyPayPalWebhook(headers, body);
-      if (!isValid) {
-        console.error('Invalid PayPal webhook signature');
-        return res.status(403).json({ error: 'Invalid webhook signature' });
+      console.log('Verifying webhook signature...');
+      try {
+        const isValid = await verifyPayPalWebhook(headers, body);
+        if (!isValid) {
+          console.error('❌ Invalid PayPal webhook signature');
+          return res.status(403).json({ 
+            error: 'Invalid webhook signature',
+            environment: PAYPAL_SANDBOX ? 'sandbox' : 'production',
+            webhook_id: PAYPAL_WEBHOOK_ID || 'not_set'
+          });
+        }
+        console.log('✅ Webhook signature verified');
+      } catch (error) {
+        console.error('❌ Webhook verification error:', error);
+        return res.status(500).json({ 
+          error: 'Webhook verification failed',
+          details: error instanceof Error ? error.message : String(error)
+        });
       }
     }
 
