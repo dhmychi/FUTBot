@@ -17,12 +17,11 @@ const paypalOptions: PayPalScriptOptions = {
   intent: 'capture',
   commit: true,
   vault: false,
-  components: 'buttons,messages,funding-eligibility',
+  components: 'buttons,funding-eligibility', // Removed 'messages' to simplify
   enableFunding: 'paypal,venmo',
   disableFunding: 'card,credit,sepa,bancontact,eps,giropay,ideal,mybank,p24,sofort',
   dataSdkIntegrationSource: 'integrationbuilder_sc',
   dataNamespace: 'paypal_sdk',
-  merchantId: '*',
   debug: import.meta.env.DEV,
   integrationDate: '2023-10-01'
 };
