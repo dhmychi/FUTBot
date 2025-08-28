@@ -1,7 +1,46 @@
-import { useState } from 'react';
-import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
-import type { CreateOrderActions, OnApproveData, OnApproveActions } from '@paypal/paypal-js';
+import { useState, useEffect } from 'react';
+import { PayPalScriptProvider, PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js';
+import type { CreateOrderActions, OnApproveData, OnApproveActions, PayPalScriptOptions } from '@paypal/paypal-js';
 import toast from 'react-hot-toast';
+
+declare global {
+  interface Window {
+    paypal: any;
+  }
+}
+
+// PayPal Button Wrapper Component
+const ButtonWrapper = ({
+  showSpinner,
+  onError,
+  onApprove,
+  createOrder
+}: {
+  showSpinner: boolean;
+  onError: (message: string) => void;
+  onApprove: (data: OnApproveData, actions: OnApproveActions) => Promise<void>;
+  createOrder: (data: Record<string, unknown>, actions: CreateOrderActions) => Promise<string>;
+}) => {
+  const [{ isPending }] = usePayPalScriptReducer();
+
+  return (
+    <div className="w-full">
+      {(showSpinner && isPending) && (
+        <div className="flex justify-center py-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-futbot-primary"></div>
+        </div>
+      )}
+      <PayPalButtons
+        style={{ layout: 'vertical' }}
+        disabled={false}
+        forceReRender={[Date.now()]}
+        createOrder={createOrder}
+        onApprove={onApprove}
+        onError={(err: any) => onError(err.message || String(err))}
+      />
+    </div>
+  );
+};
 
 // Define PricingPlan interface
 interface PricingPlan {
@@ -11,7 +50,6 @@ interface PricingPlan {
   duration: string;
   features: string[];
 }
-
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -24,6 +62,33 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
   const [isProcessing, setIsProcessing] = useState(false);
   const [sdkReady, setSdkReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // Check if PayPal script is already loaded
+    if (window.paypal) {
+      setSdkReady(true);
+      return;
+    }
+    
+    // Add script to load PayPal SDK
+    const script = document.createElement('script');
+    script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&currency=USD&intent=capture`;
+    script.async = true;
+    script.onload = () => setSdkReady(true);
+    script.onerror = () => {
+      setError('Failed to load PayPal SDK');
+      toast.error('Failed to load payment processor. Please try again later.');
+    };
+    
+    document.body.appendChild(script);
+    
+    return () => {
+      // Cleanup
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
 
   const handlePayPalPayment = async (_data: Record<string, unknown>, actions: CreateOrderActions): Promise<string> => {
     if (!actions.order) {
@@ -96,107 +161,79 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
 
   if (!isOpen) return null;
 
-  // Handle PayPal SDK loading state
-  if (!sdkReady) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
-  // Handle error state
-  if (error) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <strong className="font-bold">Error: </strong>
-          <span className="block sm:inline">{error}</span>
-          <button 
-            onClick={() => setError(null)}
-            className="absolute top-0 bottom-0 right-0 px-4 py-3"
-          >
-            <span className="sr-only">Close</span>
-            <svg className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      
-      <div className="relative bg-futbot-surface border border-futbot-primary/20 rounded-2xl p-8 w-full max-w-md shadow-xl z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-futbot-surface rounded-xl p-6 w-full max-w-md relative">
         <button
           onClick={onClose}
-          disabled={isProcessing}
           className="absolute top-4 right-4 text-gray-400 hover:text-white"
+          disabled={isProcessing}
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
         
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <img 
-              src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" 
-              alt="PayPal" 
-              className="h-12"
-            />
-          </div>
-          <h3 className="text-2xl font-bold text-white mb-2">Complete Your Purchase</h3>
-          <p className="text-gray-300 text-lg">{plan.name}</p>
-          <p className="text-futbot-primary text-3xl font-bold my-3">${plan.price}</p>
-          <div className="h-px bg-gradient-to-r from-transparent via-futbot-primary/30 to-transparent my-4"></div>
-        </div>
-
-        <div className="mb-6">
-          <div className="space-y-4">
-            <div className="min-h-[200px] flex flex-col items-center justify-center">
-              {isProcessing ? (
-                <div className="flex flex-col items-center justify-center p-4">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-                  <p className="text-white">Processing your payment...</p>
-                </div>
-              ) : (
-                <PayPalButtons
-                  style={{ 
-                    layout: 'vertical',
-                    color: 'blue',
-                    shape: 'pill',
-                    label: 'pay',
-                    height: 48,
-                    tagline: false
-                  }}
-                  disabled={isProcessing}
-                  forceReRender={[plan.id, isProcessing]}
-                  createOrder={handlePayPalPayment}
-                  onApprove={handlePayPalApprove}
-                  onError={(err) => {
-                    console.error('PayPal error:', err);
-                    toast.error('Payment processing error. Please try again.');
-                    setIsProcessing(false);
-                  }}
-                  onCancel={() => {
-                    toast('Payment cancelled', { icon: 'ℹ️' });
-                    setIsProcessing(false);
-                  }}
-                />
-              )}
+        <h2 className="text-2xl font-bold text-white mb-2">Complete Your Purchase</h2>
+        <p className="text-gray-400 mb-6">You're subscribing to the {plan.name} plan for ${plan.price} per {plan.duration}</p>
+        
+        <div className="space-y-4">
+          <div className="p-4 bg-futbot-surface-light rounded-lg">
+            <h3 className="font-semibold text-white mb-2">Order Summary</h3>
+            <div className="flex justify-between text-gray-300 text-sm">
+              <span>{plan.name} Subscription</span>
+              <span>${plan.price}</span>
             </div>
-            <div className="flex items-center justify-center space-x-2 text-gray-400 text-sm mt-4">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-              </svg>
-              <span>Secure payments via PayPal</span>
+          </div>
+          
+          <div className="pt-4">
+            <div className="flex justify-between font-semibold text-lg mb-6">
+              <span>Total</span>
+              <span>${plan.price} USD</span>
+            </div>
+            
+            <div className="space-y-4">
+              {error && (
+                <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-300 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+              
+              {sdkReady ? (
+                <PayPalScriptProvider 
+                  options={{
+                    clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
+                    currency: 'USD',
+                    intent: 'capture',
+                    components: 'buttons',
+                  } as PayPalScriptOptions}
+                >
+                  <ButtonWrapper
+                    showSpinner={isProcessing}
+                    onError={(message) => {
+                      setError(message);
+                      toast.error(`Payment error: ${message}`);
+                    }}
+                    onApprove={handlePayPalApprove}
+                    createOrder={handlePayPalPayment}
+                  />
+                </PayPalScriptProvider>
+              ) : (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-futbot-primary"></div>
+                </div>
+              )}
+              
+              <div className="text-center text-xs text-gray-500 mt-4">
+                Secure payment processed by
+                <div className="mt-1">
+                  <img 
+                    src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" 
+                    alt="PayPal" 
+                    className="h-5 mx-auto"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
