@@ -15,12 +15,16 @@ const paypalOptions: PayPalScriptOptions = {
   clientId: import.meta.env.VITE_PAYPAL_CLIENT_ID,
   currency: 'USD',
   intent: 'capture',
-  components: 'buttons',
-  debug: false, // Disable debug in production
-  dataNamespace: 'paypal_sdk',
+  commit: true,
+  vault: false,
+  components: 'buttons,messages,funding-eligibility',
+  enableFunding: 'paypal,venmo',
+  disableFunding: 'card,credit,sepa,bancontact,eps,giropay,ideal,mybank,p24,sofort',
   dataSdkIntegrationSource: 'integrationbuilder_sc',
-  enableFunding: 'paypal',
-  disableFunding: 'card,credit,venmo,sepa,bancontact,eps,giropay,ideal,mybank,p24,sofort'.split(',')
+  dataNamespace: 'paypal_sdk',
+  merchantId: '*',
+  debug: import.meta.env.DEV,
+  integrationDate: '2023-10-01'
 };
 
 function App() {
