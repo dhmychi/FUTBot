@@ -43,6 +43,9 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
       
       console.log('Creating PayPal order...');
       
+      // Add a small delay to ensure popup is ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Create PayPal order with the plan details
       const order = await actions.order.create({
         intent: 'CAPTURE',
@@ -216,6 +219,8 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
                       }}
                       // Add these props to improve popup handling
                       fundingSource="paypal"
+                      // Add popup handling
+                      data-sdk-integration-source="button-factory"
                     />
                   </div>
                 )}

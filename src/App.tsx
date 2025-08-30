@@ -10,7 +10,7 @@ import { AuthProvider } from './contexts/AuthContext';
 
 import type { PayPalScriptOptions } from '@paypal/paypal-js';
 
-// PayPal configuration - simplified for better popup handling
+// PayPal configuration - with debug mode and popup fixes
 const paypalOptions: PayPalScriptOptions = {
   clientId: import.meta.env.VITE_PAYPAL_CLIENT_ID,
   currency: 'USD',
@@ -20,9 +20,14 @@ const paypalOptions: PayPalScriptOptions = {
   components: 'buttons',
   // Simplified funding options
   disableFunding: ['card', 'credit', 'paylater', 'venmo'],
-  // Remove conflicting options
+  // Enable debug mode to see what's happening
+  debug: true,
+  // Add popup handling options
+  'data-sdk-integration-source': 'button-factory',
+  'data-page-type': 'checkout',
+  // Fix popup issues
+  'enable-funding': ['paypal'],
   dataNamespace: 'paypal_sdk',
-  debug: false,
   integrationDate: '2023-10-01'
 };
 
