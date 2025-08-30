@@ -1,48 +1,8 @@
 import { useState } from 'react';
-import { PayPalScriptProvider, PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js';
-import type { CreateOrderActions, OnApproveData, OnApproveActions } from '@paypal/paypal-js';
+import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
+import type { CreateOrderActions, OnApproveData, OnApproveActions, PayPalScriptOptions } from '@paypal/paypal-js';
 import toast from 'react-hot-toast';
 
-// PayPal Button Wrapper Component
-const ButtonWrapper = ({
-  showSpinner,
-  onError,
-  onApprove,
-  createOrder
-}: {
-  showSpinner: boolean;
-  onError: (message: string) => void;
-  onApprove: (data: OnApproveData, actions: OnApproveActions) => Promise<void>;
-  createOrder: (data: Record<string, unknown>, actions: CreateOrderActions) => Promise<string>;
-}) => {
-  const [{ isPending }] = usePayPalScriptReducer();
-  const buttonStyle = {
-    layout: 'vertical' as const,
-    color: 'gold' as const,
-    shape: 'rect' as const,
-    label: 'pay' as const,
-    tagline: false,
-    height: 48
-  };
-
-  return (
-    <div className="w-full">
-      {(showSpinner && isPending) && (
-        <div className="flex justify-center py-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-futbot-primary"></div>
-        </div>
-      )}
-      <PayPalButtons
-        style={buttonStyle}
-        disabled={false}
-        fundingSource={undefined}
-        createOrder={createOrder}
-        onApprove={onApprove}
-        onError={(err: any) => onError(err.message || String(err))}
-      />
-    </div>
-  );
-};
 
 // Define PricingPlan interface
 interface PricingPlan {
@@ -62,7 +22,6 @@ interface PaymentModalProps {
 
 export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: PaymentModalProps) {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID;
 
   if (!clientId) {
@@ -82,8 +41,18 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
     );
   }
 
+  const buttonStyle = {
+    layout: 'vertical' as const,
+    color: 'gold' as const,
+    shape: 'rect' as const,
+    label: 'pay' as const,
+    tagline: false,
+    height: 48
+  };
+
   const handlePayPalPayment = async (_data: Record<string, unknown>, actions: CreateOrderActions): Promise<string> => {
     if (!actions.order) {
+      toast.error('PayPal SDK not properly initialized');
       throw new Error('PayPal SDK not properly initialized');
     }
     try {
@@ -153,27 +122,19 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
 
   if (!isOpen) return null;
 
-  const paypalOptions = {
+  const paypalOptions: PayPalScriptOptions = {
     clientId: clientId,
     currency: 'USD',
     intent: 'capture',
     components: 'buttons',
-    'data-sdk-integration-source': 'developer-studio',
-    'data-namespace': 'PAYPAL',
-    'data-client-token': 'none',
-    'data-env': import.meta.env.VITE_PAYPAL_SANDBOX === 'true' ? 'sandbox' : 'production',
-    'data-merchant-id': '*',
-    'data-page-type': 'checkout',
-    'data-page-type-description': 'checkout-page',
-    'data-partner-attribution-id': 'FUTBOT_PARTNER',
-    'data-style': JSON.stringify({
-      layout: 'vertical',
-      color: 'gold',
-      shape: 'rect',
-      label: 'pay',
-      tagline: false,
-      height: 48
-    } as const)
+    disableFunding: ['card', 'credit', 'paylater', 'venmo'],
+    dataNamespace: 'paypal_sdk',
+    merchantId: '*',
+    vault: false,
+    commit: true,
+    debug: true,
+    integrationDate: '2023-09-01',
+    locale: 'en_US'
   };
 
   return (
@@ -209,23 +170,22 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
             
             <div className="space-y-4">
               <div className="mt-6">
-                {error ? (
-                  <div className="text-red-400 text-center py-4">
-                    {error}
-                  </div>
-                ) : (
                   <PayPalScriptProvider options={paypalOptions}>
-                    <ButtonWrapper
-                      showSpinner={isProcessing}
-                      onError={(errorMessage) => {
-                        setError(errorMessage);
-                        toast.error(`Payment error: ${errorMessage}`);
-                      }}
-                      createOrder={handlePayPalPayment}
-                      onApprove={handlePayPalApprove}
-                    />
+                    <div className="min-h-[200px] flex items-center justify-center">
+                      <PayPalButtons 
+                        style={buttonStyle}
+                        disabled={isProcessing}
+                        forceReRender={[buttonStyle]}
+                        createOrder={handlePayPalPayment}
+                        onApprove={handlePayPalApprove}
+                        onError={(err) => {
+                          console.error('PayPal error:', err);
+                          toast.error(`Payment error: ${err.message || 'Unknown error occurred'}`);
+                          setIsProcessing(false);
+                        }}
+                      />
+                    </div>
                   </PayPalScriptProvider>
-                )}
               </div>
               <div className="text-center text-xs text-gray-500 mt-4">
                 Secure payment processed by
