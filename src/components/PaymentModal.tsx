@@ -41,6 +41,8 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
       setIsProcessing(true);
       setPaypalError(''); // Clear any previous errors
       
+      console.log('Creating PayPal order...');
+      
       // Create PayPal order with the plan details
       const order = await actions.order.create({
         intent: 'CAPTURE',
@@ -58,17 +60,28 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
           payment_method: {
             payee_preferred: 'IMMEDIATE_PAYMENT_REQUIRED'
           },
-          return_url: window.location.origin + '/payment/success',
-          cancel_url: window.location.origin + '/payment/cancel',
+          // Remove return_url and cancel_url to prevent popup issues
         },
       });
       
+      console.log('PayPal order created successfully:', order);
       return order;
     } catch (error) {
       console.error('PayPal error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Payment processing failed';
-      setPaypalError(errorMessage);
-      toast.error(`Error: ${errorMessage}`);
+      
+      // Handle specific PayPal errors
+      if (errorMessage.includes('Window closed before response')) {
+        setPaypalError('Payment window was closed. Please try again.');
+        toast.error('Payment was interrupted. Please try again.');
+      } else if (errorMessage.includes('popup')) {
+        setPaypalError('Popup blocked. Please allow popups and try again.');
+        toast.error('Popup blocked. Please allow popups and try again.');
+      } else {
+        setPaypalError(errorMessage);
+        toast.error(`Error: ${errorMessage}`);
+      }
+      
       setIsProcessing(false);
       throw error;
     }
@@ -166,20 +179,30 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
                       createOrder={handlePayPalPayment}
                       onApprove={handlePayPalApprove}
                       onError={(err) => {
-                        console.error('PayPal error:', err);
+                        console.error('PayPal button error:', err);
                         const errorMessage = err.message || 'Unknown error occurred';
                         
                         // Handle specific PayPal errors
-                        if (errorMessage.includes('Window closed before response')) {
-                          setPaypalError('Payment window was closed. Please try again.');
-                          toast.error('Payment was interrupted. Please try again.');
-                        } else if (errorMessage.includes('popup')) {
-                          setPaypalError('Popup blocked. Please allow popups and try again.');
-                          toast.error('Popup blocked. Please allow popups and try again.');
+                        if (typeof errorMessage === 'string') {
+                          if (errorMessage.includes('Window closed before response')) {
+                            setPaypalError('Payment window was closed. Please try again.');
+                            toast.error('Payment was interrupted. Please try again.');
+                          } else if (errorMessage.includes('popup')) {
+                            setPaypalError('Popup blocked. Please allow popups and try again.');
+                            toast.error('Popup blocked. Please allow popups and try again.');
+                          } else if (errorMessage.includes('network')) {
+                            setPaypalError('Network error. Please check your connection and try again.');
+                            toast.error('Network error. Please check your connection and try again.');
+                          } else {
+                            setPaypalError(errorMessage);
+                            toast.error(`Payment error: ${errorMessage}`);
+                          }
                         } else {
-                          setPaypalError(errorMessage);
-                          toast.error(`Payment error: ${errorMessage}`);
+                          setPaypalError('Unknown payment error occurred');
+                          toast.error('Unknown payment error occurred');
                         }
+                        
+                        setIsProcessing(false);
                       }}
                       onCancel={() => {
                         console.log('PayPal payment cancelled');
@@ -191,6 +214,8 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
                         console.log('PayPal buttons initialized');
                         setPaypalError(''); // Clear any previous errors
                       }}
+                      // Add these props to improve popup handling
+                      fundingSource="paypal"
                     />
                   </div>
                 )}
