@@ -1,11 +1,11 @@
 import crypto from 'crypto';
 import axios from 'axios';
 
-// PayPal webhook configuration
+// PayPal webhook configuration - Using live environment
 const PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID || '';
-const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || '';
-const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET || '';
-const PAYPAL_SANDBOX = process.env.PAYPAL_SANDBOX !== 'false'; // Default to true if not set
+const PAYPAL_CLIENT_ID = 'AX6mXdqElTQ87jSXefb4-AFzDj82pMXKDpSWVXhD9ESCTy6uTQB2ZRbYpva4uayp7fGmvKLw63l';
+const PAYPAL_CLIENT_SECRET = 'EBw3gZ0Y5-4csTdQh8dN4Zzc67UELAbNswexpHAaim-QRarQ2iSTz8fhWpqK3pzfpGnivCtwXyp4Ypvw';
+const PAYPAL_SANDBOX = false; // Using live environment
 
 // Helper to safely read header values (handles string | string[])
 function getHeader(headers: any, name: string): string | undefined {
@@ -19,9 +19,9 @@ function getHeader(headers: any, name: string): string | undefined {
 
 // KeyAuth configuration
 const KEYAUTH_CONFIG = {
-  name: "FUTBot",
-  ownerid: process.env.KEYAUTH_OWNER_ID || '',
-  secret: process.env.KEYAUTH_SECRET || '',
+  name: "futbot",
+  ownerid: "j5oBWrvrnm",
+  secret: "71d7d7717aea788ae29b063fab062482e707ae9826c1e425acffaa7cd816dfc5",
   version: "1.0.0",
   url: "https://keyauth.win/api/1.2/"
 };

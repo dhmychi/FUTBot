@@ -1,15 +1,10 @@
 import paypal from '@paypal/checkout-server-sdk';
 
-// PayPal environment setup
-const environment = process.env.PAYPAL_SANDBOX === 'true' 
-  ? new paypal.core.SandboxEnvironment(
-      process.env.PAYPAL_CLIENT_ID!,
-      process.env.PAYPAL_CLIENT_SECRET!
-    )
-  : new paypal.core.LiveEnvironment(
-      process.env.PAYPAL_CLIENT_ID!,
-      process.env.PAYPAL_CLIENT_SECRET!
-    );
+// PayPal environment setup - Using live environment
+const environment = new paypal.core.LiveEnvironment(
+  'AX6mXdqElTQ87jSXefb4-AFzDj82pMXKDpSWVXhD9ESCTy6uTQB2ZRbYpva4uayp7fGmvKLw63l',
+  'EBw3gZ0Y5-4csTdQh8dN4Zzc67UELAbNswexpHAaim-QRarQ2iSTz8fhWpqK3pzfpGnivCtwXyp4Ypvw'
+);
 
 const client = new paypal.core.PayPalHttpClient(environment);
 
