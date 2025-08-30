@@ -1,15 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { PayPalScriptProvider, PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js';
-import type { CreateOrderActions, OnApproveData, OnApproveActions, PayPalScriptOptions } from '@paypal/paypal-js';
+import type { CreateOrderActions, OnApproveData, OnApproveActions } from '@paypal/paypal-js';
 import toast from 'react-hot-toast';
-
-import type { PayPalNamespace } from '@paypal/paypal-js';
-
-declare global {
-  interface Window {
-    paypal?: PayPalNamespace | null;
-  }
-}
 
 // PayPal Button Wrapper Component
 const ButtonWrapper = ({
@@ -24,6 +16,14 @@ const ButtonWrapper = ({
   createOrder: (data: Record<string, unknown>, actions: CreateOrderActions) => Promise<string>;
 }) => {
   const [{ isPending }] = usePayPalScriptReducer();
+  const buttonStyle = {
+    layout: 'vertical' as const,
+    color: 'gold' as const,
+    shape: 'rect' as const,
+    label: 'pay' as const,
+    tagline: false,
+    height: 48
+  };
 
   return (
     <div className="w-full">
@@ -33,9 +33,9 @@ const ButtonWrapper = ({
         </div>
       )}
       <PayPalButtons
-        style={{ layout: 'vertical' }}
+        style={buttonStyle}
         disabled={false}
-        forceReRender={[Date.now()]}
+        fundingSource={undefined}
         createOrder={createOrder}
         onApprove={onApprove}
         onError={(err: any) => onError(err.message || String(err))}
@@ -62,64 +62,25 @@ interface PaymentModalProps {
 
 export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: PaymentModalProps) {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [sdkReady, setSdkReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  useEffect(() => {
-    // Check if PayPal script is already loaded
-    if (window.paypal) {
-      setSdkReady(true);
-      return;
-    }
-    
-    // Add script to load PayPal SDK
-    const script = document.createElement('script');
-    const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID;
-    
-    if (!clientId) {
-      setError('PayPal client ID is not configured');
-      toast.error('Payment system configuration error. Please contact support.');
-      return;
-    }
-    
-    script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}` +
-      '&currency=USD' +
-      '&intent=capture' +
-      '&components=buttons' +
-      '&disable-funding=card,credit,paylater,venmo' +
-      '&debug=true';
-      
-    script.setAttribute('data-env', 'sandbox');
-    script.async = true;
-    
-    const handleLoad = () => {
-      if (!window.paypal) {
-        setError('PayPal SDK failed to load properly');
-        toast.error('Failed to initialize payment system. Please refresh the page.');
-        return;
-      }
-      setSdkReady(true);
-    };
-    
-    const handleError = () => {
-      setError('Failed to load PayPal SDK');
-      toast.error('Failed to load payment processor. Please try again later.');
-    };
-    
-    script.onload = handleLoad;
-    script.onerror = handleError;
-    
-    document.body.appendChild(script);
-    
-    return () => {
-      // Cleanup
-      script.onload = null;
-      script.onerror = null;
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
-    };
-  }, []);
+  const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID;
+
+  if (!clientId) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-futbot-surface rounded-xl p-6 w-full max-w-md relative">
+          <h2 className="text-2xl font-bold text-white mb-4">Configuration Error</h2>
+          <p className="text-red-400 mb-4">PayPal client ID is not configured. Please contact support.</p>
+          <button
+            onClick={onClose}
+            className="w-full bg-futbot-primary text-white py-2 px-4 rounded-lg hover:bg-futbot-primary/90 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handlePayPalPayment = async (_data: Record<string, unknown>, actions: CreateOrderActions): Promise<string> => {
     if (!actions.order) {
@@ -192,6 +153,29 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
 
   if (!isOpen) return null;
 
+  const paypalOptions = {
+    clientId: clientId,
+    currency: 'USD',
+    intent: 'capture',
+    components: 'buttons',
+    'data-sdk-integration-source': 'developer-studio',
+    'data-namespace': 'PAYPAL',
+    'data-client-token': 'none',
+    'data-env': import.meta.env.VITE_PAYPAL_SANDBOX === 'true' ? 'sandbox' : 'production',
+    'data-merchant-id': '*',
+    'data-page-type': 'checkout',
+    'data-page-type-description': 'checkout-page',
+    'data-partner-attribution-id': 'FUTBOT_PARTNER',
+    'data-style': JSON.stringify({
+      layout: 'vertical',
+      color: 'gold',
+      shape: 'rect',
+      label: 'pay',
+      tagline: false,
+      height: 48
+    } as const)
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-futbot-surface rounded-xl p-6 w-full max-w-md relative">
@@ -224,37 +208,25 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
             </div>
             
             <div className="space-y-4">
-              {error && (
-                <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-300 rounded-lg text-sm">
-                  {error}
-                </div>
-              )}
-              
-              {sdkReady ? (
-                <PayPalScriptProvider 
-                  options={{
-                    clientId: import.meta.env.VITE_PAYPAL_CLIENT_ID || '',
-                    currency: 'USD',
-                    intent: 'capture',
-                    components: 'buttons',
-                  } as PayPalScriptOptions}
-                >
-                  <ButtonWrapper
-                    showSpinner={isProcessing}
-                    onError={(message) => {
-                      setError(message);
-                      toast.error(`Payment error: ${message}`);
-                    }}
-                    onApprove={handlePayPalApprove}
-                    createOrder={handlePayPalPayment}
-                  />
-                </PayPalScriptProvider>
-              ) : (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-futbot-primary"></div>
-                </div>
-              )}
-              
+              <div className="mt-6">
+                {error ? (
+                  <div className="text-red-400 text-center py-4">
+                    {error}
+                  </div>
+                ) : (
+                  <PayPalScriptProvider options={paypalOptions}>
+                    <ButtonWrapper
+                      showSpinner={isProcessing}
+                      onError={(errorMessage) => {
+                        setError(errorMessage);
+                        toast.error(`Payment error: ${errorMessage}`);
+                      }}
+                      createOrder={handlePayPalPayment}
+                      onApprove={handlePayPalApprove}
+                    />
+                  </PayPalScriptProvider>
+                )}
+              </div>
               <div className="text-center text-xs text-gray-500 mt-4">
                 Secure payment processed by
                 <div className="mt-1">
