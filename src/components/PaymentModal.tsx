@@ -39,6 +39,7 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
     }
     try {
       setIsProcessing(true);
+      setPaypalError(''); // Clear any previous errors
       
       // Create PayPal order with the plan details
       const order = await actions.order.create({
@@ -57,6 +58,8 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
           payment_method: {
             payee_preferred: 'IMMEDIATE_PAYMENT_REQUIRED'
           },
+          return_url: window.location.origin + '/payment/success',
+          cancel_url: window.location.origin + '/payment/cancel',
         },
       });
       
@@ -64,6 +67,7 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
     } catch (error) {
       console.error('PayPal error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Payment processing failed';
+      setPaypalError(errorMessage);
       toast.error(`Error: ${errorMessage}`);
       setIsProcessing(false);
       throw error;
@@ -72,12 +76,16 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
 
   const handlePayPalApprove = async (_data: OnApproveData, actions: OnApproveActions) => {
     if (!actions.order) {
-      toast.error('Invalid order action');
+      const errorMsg = 'Invalid order action';
+      setPaypalError(errorMsg);
+      toast.error(errorMsg);
       setIsProcessing(false);
       return;
     }
     
     try {
+      setPaypalError(''); // Clear any previous errors
+      
       // Capture the payment
       const details = await actions.order.capture();
       console.log('Payment completed successfully', details);
@@ -96,7 +104,15 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
     } catch (error) {
       console.error('Payment approval error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Payment processing failed';
-      toast.error(`Error: ${errorMessage}`);
+      
+      // Handle specific PayPal errors
+      if (errorMessage.includes('Window closed before response')) {
+        setPaypalError('Payment window was closed. Please try again.');
+        toast.error('Payment was interrupted. Please try again.');
+      } else {
+        setPaypalError(errorMessage);
+        toast.error(`Payment error: ${errorMessage}`);
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -151,7 +167,29 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
                       onApprove={handlePayPalApprove}
                       onError={(err) => {
                         console.error('PayPal error:', err);
-                        toast.error(`Payment error: ${err.message || 'Unknown error occurred'}`);
+                        const errorMessage = err.message || 'Unknown error occurred';
+                        
+                        // Handle specific PayPal errors
+                        if (errorMessage.includes('Window closed before response')) {
+                          setPaypalError('Payment window was closed. Please try again.');
+                          toast.error('Payment was interrupted. Please try again.');
+                        } else if (errorMessage.includes('popup')) {
+                          setPaypalError('Popup blocked. Please allow popups and try again.');
+                          toast.error('Popup blocked. Please allow popups and try again.');
+                        } else {
+                          setPaypalError(errorMessage);
+                          toast.error(`Payment error: ${errorMessage}`);
+                        }
+                      }}
+                      onCancel={() => {
+                        console.log('PayPal payment cancelled');
+                        setPaypalError('Payment was cancelled.');
+                        toast.error('Payment was cancelled.');
+                        setIsProcessing(false);
+                      }}
+                      onInit={() => {
+                        console.log('PayPal buttons initialized');
+                        setPaypalError(''); // Clear any previous errors
                       }}
                     />
                   </div>
