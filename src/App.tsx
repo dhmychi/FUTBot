@@ -10,25 +10,29 @@ import { AuthProvider } from './contexts/AuthContext';
 
 import type { PayPalScriptOptions } from '@paypal/paypal-js';
 
-// PayPal configuration
+// PayPal configuration - simplified and optimized
 const paypalOptions: PayPalScriptOptions = {
   clientId: import.meta.env.VITE_PAYPAL_CLIENT_ID,
   currency: 'USD',
   intent: 'capture',
   commit: true,
   vault: false,
-  components: 'buttons,funding-eligibility', // Removed 'messages' to simplify
-  enableFunding: 'paypal,venmo',
-  disableFunding: 'card,credit,sepa,bancontact,eps,giropay,ideal,mybank,p24,sofort',
-  dataSdkIntegrationSource: 'integrationbuilder_sc',
+  components: 'buttons',
+  disableFunding: ['card', 'credit', 'paylater', 'venmo'],
   dataNamespace: 'paypal_sdk',
-  debug: import.meta.env.DEV,
+  debug: false, // Set to false in production
   integrationDate: '2023-10-01'
 };
 
 function App() {
   // Debug: Log the PayPal client ID to verify it's loaded
   console.log('PayPal Client ID:', import.meta.env.VITE_PAYPAL_CLIENT_ID);
+  
+  // Check if PayPal client ID is configured
+  if (!import.meta.env.VITE_PAYPAL_CLIENT_ID) {
+    console.error('PayPal Client ID is not configured. Please set VITE_PAYPAL_CLIENT_ID in your environment variables.');
+  }
+  
   return (
     <PayPalScriptProvider options={paypalOptions}>
       <AuthProvider>

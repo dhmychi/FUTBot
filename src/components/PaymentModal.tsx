@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
-import type { CreateOrderActions, OnApproveData, OnApproveActions, PayPalScriptOptions } from '@paypal/paypal-js';
+import { PayPalButtons } from '@paypal/react-paypal-js';
+import type { CreateOrderActions, OnApproveData, OnApproveActions } from '@paypal/paypal-js';
 import toast from 'react-hot-toast';
 
 
@@ -23,24 +23,6 @@ interface PaymentModalProps {
 export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: PaymentModalProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paypalError, setPaypalError] = useState('');
-  const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID;
-
-  if (!clientId) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-futbot-surface rounded-xl p-6 w-full max-w-md relative">
-          <h2 className="text-2xl font-bold text-white mb-4">Configuration Error</h2>
-          <p className="text-red-400 mb-4">PayPal client ID is not configured. Please contact support.</p>
-          <button
-            onClick={onClose}
-            className="w-full bg-futbot-primary text-white py-2 px-4 rounded-lg hover:bg-futbot-primary/90 transition-colors"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   const buttonStyle = {
     layout: 'vertical' as const,
@@ -122,20 +104,6 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
 
   if (!isOpen) return null;
 
-  const paypalOptions: PayPalScriptOptions = {
-    clientId: clientId,
-    currency: 'USD',
-    intent: 'capture',
-    components: 'buttons',
-    disableFunding: ['card', 'credit', 'paylater', 'venmo'],
-    dataNamespace: 'paypal_sdk',
-    vault: false,
-    commit: true,
-    debug: true,
-    integrationDate: '2023-09-01',
-    locale: 'en_US'
-  };
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-futbot-surface rounded-xl p-6 w-full max-w-md relative">
@@ -174,21 +142,19 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
                     {paypalError}
                   </div>
                 ) : (
-                  <PayPalScriptProvider options={paypalOptions}>
-                    <div className="min-h-[200px] flex items-center justify-center">
-                      <PayPalButtons 
-                        style={buttonStyle}
-                        disabled={isProcessing}
-                        forceReRender={[buttonStyle]}
-                        createOrder={handlePayPalPayment}
-                        onApprove={handlePayPalApprove}
-                        onError={(err) => {
-                          console.error('PayPal error:', err);
-                          toast.error(`Payment error: ${err.message || 'Unknown error occurred'}`);
-                        }}
-                      />
-                    </div>
-                  </PayPalScriptProvider>
+                  <div className="min-h-[200px] flex items-center justify-center">
+                    <PayPalButtons 
+                      style={buttonStyle}
+                      disabled={isProcessing}
+                      forceReRender={[buttonStyle]}
+                      createOrder={handlePayPalPayment}
+                      onApprove={handlePayPalApprove}
+                      onError={(err) => {
+                        console.error('PayPal error:', err);
+                        toast.error(`Payment error: ${err.message || 'Unknown error occurred'}`);
+                      }}
+                    />
+                  </div>
                 )}
               </div>
               <div className="text-center text-xs text-gray-500 mt-4">
