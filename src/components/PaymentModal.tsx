@@ -22,6 +22,7 @@ interface PaymentModalProps {
 
 export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: PaymentModalProps) {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paypalError, setPaypalError] = useState('');
   const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID;
 
   if (!clientId) {
@@ -52,7 +53,6 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
 
   const handlePayPalPayment = async (_data: Record<string, unknown>, actions: CreateOrderActions): Promise<string> => {
     if (!actions.order) {
-      toast.error('PayPal SDK not properly initialized');
       throw new Error('PayPal SDK not properly initialized');
     }
     try {
@@ -129,7 +129,6 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
     components: 'buttons',
     disableFunding: ['card', 'credit', 'paylater', 'venmo'],
     dataNamespace: 'paypal_sdk',
-    merchantId: '*',
     vault: false,
     commit: true,
     debug: true,
@@ -170,6 +169,11 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
             
             <div className="space-y-4">
               <div className="mt-6">
+                {paypalError ? (
+                  <div className="text-red-400 text-center py-4">
+                    {paypalError}
+                  </div>
+                ) : (
                   <PayPalScriptProvider options={paypalOptions}>
                     <div className="min-h-[200px] flex items-center justify-center">
                       <PayPalButtons 
@@ -181,11 +185,11 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
                         onError={(err) => {
                           console.error('PayPal error:', err);
                           toast.error(`Payment error: ${err.message || 'Unknown error occurred'}`);
-                          setIsProcessing(false);
                         }}
                       />
                     </div>
                   </PayPalScriptProvider>
+                )}
               </div>
               <div className="text-center text-xs text-gray-500 mt-4">
                 Secure payment processed by
