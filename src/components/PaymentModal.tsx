@@ -43,8 +43,8 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
       
       console.log('Creating PayPal order...');
       
-      // Add a small delay to ensure popup is ready
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Add a longer delay to ensure popup is fully ready
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Create PayPal order with the plan details
       const order = await actions.order.create({
@@ -63,30 +63,35 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
           payment_method: {
             payee_preferred: 'IMMEDIATE_PAYMENT_REQUIRED'
           },
-          // Remove return_url and cancel_url to prevent popup issues
-        },
+          return_url: `${window.location.origin}/payment-success`,
+          cancel_url: `${window.location.origin}/payment-cancelled`
+        }
       });
       
       console.log('PayPal order created successfully:', order);
       return order;
     } catch (error) {
-      console.error('PayPal error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Payment processing failed';
+      console.error('Error creating PayPal order:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       
       // Handle specific PayPal errors
-      if (errorMessage.includes('Window closed before response')) {
-        setPaypalError('Payment window was closed. Please try again.');
-        toast.error('Payment was interrupted. Please try again.');
+      if (errorMessage.includes('Target window is closed')) {
+        setPaypalError('Payment window was closed unexpectedly. Please try again.');
+        toast.error('Payment window closed. Please try again.');
       } else if (errorMessage.includes('popup')) {
         setPaypalError('Popup blocked. Please allow popups and try again.');
         toast.error('Popup blocked. Please allow popups and try again.');
+      } else if (errorMessage.includes('network')) {
+        setPaypalError('Network error. Please check your connection and try again.');
+        toast.error('Network error. Please try again.');
       } else {
-        setPaypalError(errorMessage);
-        toast.error(`Error: ${errorMessage}`);
+        setPaypalError(`Payment error: ${errorMessage}`);
+        toast.error(`Payment error: ${errorMessage}`);
       }
       
-      setIsProcessing(false);
       throw error;
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -187,22 +192,25 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
                         
                         // Handle specific PayPal errors
                         if (typeof errorMessage === 'string') {
-                          if (errorMessage.includes('Window closed before response')) {
-                            setPaypalError('Payment window was closed. Please try again.');
-                            toast.error('Payment was interrupted. Please try again.');
+                          if (errorMessage.includes('Target window is closed')) {
+                            setPaypalError('Payment window was closed unexpectedly. Please try again.');
+                            toast.error('Payment window closed. Please try again.');
                           } else if (errorMessage.includes('popup')) {
                             setPaypalError('Popup blocked. Please allow popups and try again.');
                             toast.error('Popup blocked. Please allow popups and try again.');
                           } else if (errorMessage.includes('network')) {
                             setPaypalError('Network error. Please check your connection and try again.');
-                            toast.error('Network error. Please check your connection and try again.');
+                            toast.error('Network error. Please try again.');
+                          } else if (errorMessage.includes('Window closed before response')) {
+                            setPaypalError('Payment window was closed. Please try again.');
+                            toast.error('Payment was interrupted. Please try again.');
                           } else {
-                            setPaypalError(errorMessage);
-                            toast.error(`Payment error: ${errorMessage}`);
+                            setPaypalError(`PayPal error: ${errorMessage}`);
+                            toast.error(`PayPal error: ${errorMessage}`);
                           }
                         } else {
-                          setPaypalError('Unknown payment error occurred');
-                          toast.error('Unknown payment error occurred');
+                          setPaypalError('An unexpected error occurred with PayPal');
+                          toast.error('An unexpected error occurred with PayPal');
                         }
                         
                         setIsProcessing(false);
