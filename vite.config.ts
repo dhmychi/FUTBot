@@ -1,6 +1,5 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
-import apiPlugin from './vite-plugin-api';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -11,18 +10,12 @@ export default defineConfig(({ mode }) => {
   console.log('PayPal Client ID from Vite Config:', env.VITE_PAYPAL_CLIENT_ID);
   
   return {
-    base: '/futbot-subscription-manager/', // Match your repository name
+    base: '/', // Vercel deployment - use root
     plugins: [
-      react(),
-      apiPlugin()
+      react()
     ],
     define: {
-      'import.meta.env': {
-        VITE_PAYPAL_CLIENT_ID: JSON.stringify(env.VITE_PAYPAL_CLIENT_ID),
-        VITE_PAYPAL_ENVIRONMENT: JSON.stringify(env.VITE_PAYPAL_ENVIRONMENT),
-        VITE_PAYPAL_CLIENT_SECRET: JSON.stringify(env.VITE_PAYPAL_CLIENT_SECRET),
-        VITE_API_BASE_URL: JSON.stringify('/api')
-      }
+      __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
     },
     server: {
       port: 3000,
@@ -39,7 +32,7 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
-      sourcemap: false, // Disable sourcemaps for production
+      sourcemap: true, // Enable sourcemaps for debugging
       emptyOutDir: true,
       minify: 'terser',
       terserOptions: {

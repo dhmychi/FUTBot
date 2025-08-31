@@ -23,6 +23,6 @@
     "noFallthroughCasesInSwitch": true,
     "types": ["vite/client", "node"]
   },
-  "include": ["src", "**/*.ts", "**/*.tsx"],
+  "include": ["src", "vite-plugin-api.ts", "vite.config.ts", "**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules"]
 }

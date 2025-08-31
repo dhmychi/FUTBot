@@ -6,7 +6,7 @@
       "use": "@vercel/static-build@latest",
       "config": {
         "distDir": "dist",
-        "runtime": "nodejs20.x"
+        "runtime": "nodejs22.x"
       }
     },
     {
