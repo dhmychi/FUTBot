@@ -221,7 +221,10 @@ export default function LandingPage() {
     try {
       console.log('Creating PayPal order for plan:', plan.id);
       
-      const response = await fetch('/api/create-subscription', {
+      // Use Vercel API domain directly since website is on custom domain
+      const API_BASE = 'https://fut-bot-git-main-dhmychifahad-5000s-projects.vercel.app';
+      
+      const response = await fetch(`${API_BASE}/api/create-subscription`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

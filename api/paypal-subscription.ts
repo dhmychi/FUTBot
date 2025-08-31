@@ -3,8 +3,8 @@ import paypal from '@paypal/checkout-server-sdk';
 
 // Configure PayPal environment
 const configureEnvironment = () => {
-  const clientId = process.env.VITE_PAYPAL_CLIENT_ID || '';
-  const clientSecret = process.env.VITE_PAYPAL_CLIENT_SECRET || '';
+  const clientId = process.env.VITE_PAYPAL_CLIENT_ID || process.env.PAYPAL_CLIENT_ID || '';
+  const clientSecret = process.env.VITE_PAYPAL_CLIENT_SECRET || process.env.PAYPAL_CLIENT_SECRET || '';
   
   if (!clientId || !clientSecret) {
     throw new Error('PayPal credentials not configured');
