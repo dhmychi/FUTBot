@@ -1,3 +1,4 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
 import axios from 'axios';
 
@@ -352,7 +353,7 @@ async function handleSubscriptionCancellation(event: any) {
 }
 
 // Main webhook handler for Vercel
-export default async function handler(req: any, res: any) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Log all incoming requests (sanitized for production)
   console.log('=== PayPal Webhook Request ===');
   console.log('Method:', req.method);

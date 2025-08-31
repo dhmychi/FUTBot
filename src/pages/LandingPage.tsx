@@ -218,19 +218,32 @@ export default function LandingPage() {
   }, []);
 
   const handleSelectPlan = async (plan: SubscriptionPlan) => {
-    // Instead of redirecting to register, show payment form directly
-    const paymentForm = document.createElement('form');
-    paymentForm.method = 'POST';
-    paymentForm.action = '/api/create-subscription';
-    
-    const planInput = document.createElement('input');
-    planInput.type = 'hidden';
-    planInput.name = 'plan';
-    planInput.value = plan.id;
-    
-    paymentForm.appendChild(planInput);
-    document.body.appendChild(paymentForm);
-    paymentForm.submit();
+    try {
+      console.log('Creating PayPal order for plan:', plan.id);
+      
+      const response = await fetch('/api/create-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          plan: plan.id
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success && data.approvalUrl) {
+        // Redirect to PayPal for payment
+        window.location.href = data.approvalUrl;
+      } else {
+        console.error('Failed to create subscription:', data);
+        alert('Failed to create subscription. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error creating subscription:', error);
+      alert('Error creating subscription. Please try again.');
+    }
   };
 
   const TestimonialsSection = () => (
