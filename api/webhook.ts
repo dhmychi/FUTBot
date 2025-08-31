@@ -354,6 +354,30 @@ async function handleSubscriptionCancellation(event: any) {
 
 // Main webhook handler for Vercel
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Set CORS headers for cross-domain requests
+  const allowedOrigins = [
+    'https://www.futbot.club',
+    'https://futbot.club',
+    'https://fut-bot-git-main-dhmychifahad-5000s-projects.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173'
+  ];
+  
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin as string)) {
+    res.setHeader('Access-Control-Allow-Origin', origin as string);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Paypal-Auth-Assertion, Paypal-Auth-Algo, Paypal-Cert-Url, Paypal-Transmission-Id, Paypal-Transmission-Sig, Paypal-Transmission-Time');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   // Log all incoming requests (sanitized for production)
   console.log('=== PayPal Webhook Request ===');
   console.log('Method:', req.method);
