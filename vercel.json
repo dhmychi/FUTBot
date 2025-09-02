@@ -10,6 +10,10 @@
       }
     },
     {
+      "src": "api/**/*.js",
+      "use": "@vercel/node@latest"
+    },
+    {
       "src": "api/**/*.ts",
       "use": "@vercel/node@latest"
     }
@@ -19,6 +23,9 @@
       "runtime": "nodejs22.x"
     },
     "api/test-webhook.ts": {
+      "runtime": "nodejs22.x"
+    },
+    "api/ping.js": {
       "runtime": "nodejs22.x"
     }
   },
