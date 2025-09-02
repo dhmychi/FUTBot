@@ -549,7 +549,7 @@ export default function LandingPage() {
               <a href="/privacy" className="text-gray-400 hover:text-white transition">Privacy Policy</a>
               <a href="/refund" className="text-gray-400 hover:text-white transition">Refund Policy</a>
             </div>
-            <p className="text-gray-500">© 2025 FUTBot. All rights reserved.</p>
+            <p className="text-gray-500">© 2023 FUTBot. All rights reserved.</p>
           </div>
         </div>
       </footer>
