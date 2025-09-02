@@ -259,12 +259,35 @@ async function createKeyAuthLicense(username: string, email: string, duration: n
 
     const sessionId = initResponse.data.sessionid;
 
-    // For now, we'll use a predefined license key since API license creation needs admin privileges
-    // In production, you should create licenses manually in KeyAuth dashboard
-    // This is a temporary workaround - ideally you'd have pre-created licenses
-    const licenseKey = `FUTBOT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-    
-    console.log('⚠️ Using generated license key (manual creation recommended):', licenseKey);
+    // Try to create license using KeyAuth API
+    const licensePayload = new URLSearchParams();
+    licensePayload.append('type', 'addkey');
+    licensePayload.append('name', KEYAUTH_CONFIG.name);
+    licensePayload.append('ownerid', KEYAUTH_CONFIG.ownerid);
+    licensePayload.append('secret', KEYAUTH_CONFIG.secret);
+    licensePayload.append('sessionid', sessionId);
+    licensePayload.append('expiry', duration.toString()); // days
+    licensePayload.append('mask', 'XXXXXX-XXXXXX-XXXXXX'); // license format
+    licensePayload.append('amount', '1'); // number of licenses to create
+    licensePayload.append('level', '1'); // subscription level
+    licensePayload.append('note', `Created for ${username} (${email})`);
+
+    const licenseResponse = await axios.post(KEYAUTH_CONFIG.url, licensePayload, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+
+    console.log('KeyAuth addkey response:', licenseResponse.data);
+
+    if (!licenseResponse.data.success) {
+      console.error('❌ KeyAuth license creation failed:', licenseResponse.data);
+      // Fallback to generated key if API fails
+      const fallbackKey = `FUTBOT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      console.log('⚠️ Using fallback generated license key:', fallbackKey);
+      return fallbackKey;
+    }
+
+    const licenseKey = licenseResponse.data.key || licenseResponse.data.keys?.[0];
+    console.log('✅ KeyAuth license created successfully:', licenseKey);
     return licenseKey;
   } catch (error) {
     console.error('KeyAuth license creation failed:', error);
