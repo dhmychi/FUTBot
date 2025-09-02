@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import axios from 'axios';
+import { Resend } from 'resend';
 
 // PayPal webhook configuration - Use environment variables
 const PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID || '';
@@ -25,6 +26,11 @@ const KEYAUTH_CONFIG = {
   version: process.env.KEYAUTH_VERSION || "1.0.0",
   url: process.env.KEYAUTH_URL || "https://keyauth.win/api/1.2/"
 };
+
+// Resend configuration
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@resend.dev';
+const resendClient = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 
 // Subscription plans mapping
 const SUBSCRIPTION_PLANS = {
@@ -289,60 +295,46 @@ async function extendKeyAuthSubscription(username: string, duration: number): Pr
   }
 }
 
-// Send welcome email with login credentials
+// Send welcome email with login credentials (Resend)
 async function sendWelcomeEmail(email: string, username: string, licenseKey: string, plan: string): Promise<boolean> {
   try {
-    console.log('Sending welcome email to:', email);
-    
-    // TODO: Implement actual email sending
-    // You can use services like:
-    // - Resend (recommended for Vercel)
-    // - SendGrid
-    // - Nodemailer with SMTP
-    // - AWS SES
-    
-    const emailContent = {
-      to: email,
-      subject: '🎉 Welcome to FUTBot! Your Account is Ready',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #4169E1;">Welcome to FUTBot! 🚀</h2>
-          
-          <p>Congratulations! Your ${plan} subscription is now active.</p>
-          
-          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3>Your Login Credentials:</h3>
-            <p><strong>Username:</strong> ${username}</p>
-            <p><strong>License Key:</strong> ${licenseKey}</p>
-          </div>
-          
-          <h3>Getting Started:</h3>
-          <ol>
-            <li>Download the FUTBot Chrome Extension</li>
-            <li>Use your username and license key to log in</li>
-            <li>Configure your trading settings</li>
-            <li>Start earning coins automatically!</li>
-          </ol>
-          
-          <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>💡 Pro Tip:</strong> Keep your license key safe and don't share it with anyone.</p>
-          </div>
-          
-          <p>If you need help, contact our support team at support@futbot.club</p>
-          
-          <p>Happy Trading!<br>The FUTBot Team</p>
+    if (!resendClient) {
+      console.warn('[Email] RESEND_API_KEY not configured; skipping email send');
+      return false;
+    }
+
+    const fromAddress = FROM_EMAIL; // e.g., 'FUTBot <no-reply@send.futbot.club>' once verified
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #4169E1;">Welcome to FUTBot! 🚀</h2>
+        <p>Congratulations! Your <strong>${plan}</strong> subscription is now active.</p>
+        <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <h3>Your Credentials</h3>
+          <p><strong>Username:</strong> ${username}</p>
+          <p><strong>License Key:</strong> ${licenseKey}</p>
         </div>
-      `
-    };
-    
-    console.log('Email prepared for:', email, 'Content preview:', emailContent.subject);
-    
-    // For now, just log the email content
-    // Replace this with actual email sending implementation
+        <h3>Getting Started</h3>
+        <ol>
+          <li>Install the FUTBot Chrome Extension.</li>
+          <li>Log in using your username and license key.</li>
+          <li>Configure your trading settings and start.</li>
+        </ol>
+        <p style="margin-top: 16px;">Need help? Contact us at <a href="mailto:support@futbot.club">support@futbot.club</a></p>
+        <p>Happy Trading!<br/>FUTBot Team</p>
+      </div>
+    `;
+
+    await resendClient.emails.send({
+      from: fromAddress,
+      to: email,
+      subject: 'Welcome to FUTBot! Your Account is Ready',
+      html
+    });
+
     return true;
-    
-  } catch (error) {
-    console.error('Failed to send welcome email:', error);
+  } catch (error: any) {
+    console.error('Failed to send welcome email:', error?.response?.data || error);
     return false;
   }
 }
