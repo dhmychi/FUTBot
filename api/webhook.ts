@@ -27,8 +27,29 @@ const KEYAUTH_CONFIG = {
   url: process.env.KEYAUTH_URL || "https://keyauth.win/api/1.2/"
 };
 
-// Optional seller key for license creation via Seller API
+// بدلاً من pool ثابت، سنستخدم Seller API لإنشاء مفتاح جديد لكل عميل
 const KEYAUTH_SELLER_KEY = process.env.KEYAUTH_SELLER_KEY || '';
+
+// إنشاء مفتاح جديد لكل عميل
+async function createLicenseKey() {
+  if (KEYAUTH_SELLER_KEY && KEYAUTH_SELLER_KEY.length === 32) {
+    // إنشاء مفتاح جديد عبر Seller API
+    const params = new URLSearchParams();
+    params.append('sellerkey', KEYAUTH_SELLER_KEY);
+    params.append('type', 'add');
+    params.append('expiry', '30'); // 30 يوم
+    params.append('amount', '1');
+    params.append('level', '1');
+    params.append('mask', '******-******-******-******');
+    params.append('format', 'JSON');
+    
+    const response = await axios.post('https://keyauth.win/api/seller/', params);
+    return response.data.key;
+  }
+  
+  // fallback إذا لم يكن Seller Key متوفر
+  return `FUTBOT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
 
 // Resend configuration
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
@@ -547,19 +568,46 @@ async function handleSuccessfulPayment(event: any) {
       return; // ignore unrecognized simulator/test amounts
     }
 
-    // Get license key from server pool
-    const LICENSE_KEYS_POOL = (process.env.KEYAUTH_LICENSE_KEYS || '').split(',').filter(key => key.trim());
+    // Create a new license key automatically for this customer
+    const KEYAUTH_SELLER_KEY = process.env.KEYAUTH_SELLER_KEY || '';
     let licenseKey: string;
     
-    if (LICENSE_KEYS_POOL.length > 0) {
-      // Use a random key from the pool
-      const randomIndex = Math.floor(Math.random() * LICENSE_KEYS_POOL.length);
-      licenseKey = LICENSE_KEYS_POOL[randomIndex];
-      console.log('✅ Using license key from server pool:', `***${licenseKey.slice(-4)}`);
+    if (KEYAUTH_SELLER_KEY && KEYAUTH_SELLER_KEY.length === 32) {
+      console.log('🎫 Creating new license key via Seller API...');
+      try {
+        const params = new URLSearchParams();
+        params.append('sellerkey', KEYAUTH_SELLER_KEY);
+        params.append('type', 'add');
+        params.append('expiry', String(subscriptionPlan.duration)); // subscription duration
+        params.append('amount', '1'); // create 1 key
+        params.append('level', '1'); // subscription level
+        params.append('mask', '******-******-******-******'); // KeyAuth v1.3 format
+        params.append('format', 'JSON');
+        params.append('note', `Auto-generated for ${userEmail} - Payment: ${paymentId}`);
+
+        const response = await axios.post('https://keyauth.win/api/seller/', params, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          timeout: 10000
+        });
+
+        console.log('Seller API response:', response.data);
+
+        if (response.data?.success && response.data.key) {
+          licenseKey = response.data.key;
+          console.log('✅ New license key created:', `***${licenseKey.slice(-4)}`);
+        } else {
+          throw new Error(response.data?.message || 'Failed to create license key');
+        }
+      } catch (error: any) {
+        console.error('❌ Seller API failed:', error.message);
+        // Fallback to generated key
+        licenseKey = `FUTBOT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+        console.log('⚠️ Using fallback generated key:', `***${licenseKey.slice(-4)}`);
+      }
     } else {
-      // Fallback: use a predefined license key
-      licenseKey = process.env.KEYAUTH_DEFAULT_LICENSE || `FUTBOT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-      console.log('⚠️ No license keys in pool, using default/fallback:', `***${licenseKey.slice(-4)}`);
+      // No seller key available - use fallback
+      licenseKey = `FUTBOT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      console.log('⚠️ No valid seller key, using generated key:', `***${licenseKey.slice(-4)}`);
     }
 
     // If customer provided access code, register a KeyAuth user using the license
