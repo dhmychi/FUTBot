@@ -74,7 +74,7 @@ async function testKeyAuth() {
       secret: KEYAUTH_CONFIG.secret,
       sessionid: sessionId, // Add session ID
       username: testUsername,
-      password: testPassword,
+      pass: testPassword,
       key: testLicense, // Use the license we just created
       email: testEmail
     };
@@ -100,7 +100,7 @@ async function testKeyAuth() {
     console.log('✅ Test user registered successfully!');
     console.log('Test User Details:', {
       username: testUsername,
-      password: testPassword,
+      pass: testPassword,
       email: testEmail,
       license: testLicense
     });

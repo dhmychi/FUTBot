@@ -175,7 +175,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     registerPayload.append('secret', KEYAUTH_CONFIG.secret);
     registerPayload.append('sessionid', sessionId);
     registerPayload.append('username', email); // Use email as username
-    registerPayload.append('password', accessCode);
+    registerPayload.append('pass', accessCode);
     registerPayload.append('key', licenseKey);
     registerPayload.append('email', email);
 
