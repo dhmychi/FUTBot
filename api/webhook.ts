@@ -20,10 +20,10 @@ function getHeader(headers: any, name: string): string | undefined {
 
 // KeyAuth configuration - Use environment variables
 const KEYAUTH_CONFIG = {
-  name: process.env.KEYAUTH_NAME || "futbot",
+  name: process.env.KEYAUTH_NAME || process.env.KEYAUTH_APP_NAME || "futbot",
   ownerid: process.env.KEYAUTH_OWNER_ID || "",
-  secret: process.env.KEYAUTH_SECRET || "",
-  version: process.env.KEYAUTH_VERSION || "1.0.0",
+  secret: process.env.KEYAUTH_SECRET || process.env.KEYAUTH_APP_SECRET || "",
+  version: process.env.KEYAUTH_VERSION || process.env.KEYAUTH_APP_VERSION || "1.0.0",
   url: process.env.KEYAUTH_URL || "https://keyauth.win/api/1.2/"
 };
 
