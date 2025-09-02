@@ -171,6 +171,7 @@ export default function LandingPage() {
     }
 
     function animate() {
+      if (!canvas || !ctx) return;
       requestAnimationFrame(animate);
       ctx.fillStyle = 'rgba(15, 23, 41, 0.1)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -179,6 +180,7 @@ export default function LandingPage() {
         particle.x += particle.dx;
         particle.y += particle.dy;
 
+        if (!canvas) return;
         if (particle.x < 0 || particle.x > canvas.width) particle.dx *= -1;
         if (particle.y < 0 || particle.y > canvas.height) particle.dy *= -1;
 
@@ -221,8 +223,8 @@ export default function LandingPage() {
     try {
       console.log('Creating PayPal order for plan:', plan.id);
       
-      // Use Vercel API domain directly since website is on custom domain
-      const API_BASE = 'https://fut-bot-git-main-dhmychifahad-5000s-projects.vercel.app';
+      // Use environment variable for API base URL
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://fut-bot-git-main-dhmychifahad-5000s-projects.vercel.app';
       
       const response = await fetch(`${API_BASE}/api/create-subscription`, {
         method: 'POST',

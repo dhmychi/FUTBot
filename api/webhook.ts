@@ -2,11 +2,11 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
 import axios from 'axios';
 
-// PayPal webhook configuration - Using live environment
+// PayPal webhook configuration - Use environment variables
 const PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID || '';
-const PAYPAL_CLIENT_ID = 'AX6mXdqElTQ87jSXefb4-AFzDj82pMXKDpSWVXhD9ESCTy6uTQB2ZRbYpva4uayp7fGmvKLw63l';
-const PAYPAL_CLIENT_SECRET = 'EBw3gZ0Y5-4csTdQh8dN4Zzc67UELAbNswexpHAaim-QRarQ2iSTz8fhWpqK3pzfpGnivCtwXyp4Ypvw';
-const PAYPAL_SANDBOX = false; // Using live environment
+const PAYPAL_CLIENT_ID = process.env.VITE_PAYPAL_CLIENT_ID || process.env.PAYPAL_CLIENT_ID || '';
+const PAYPAL_CLIENT_SECRET = process.env.VITE_PAYPAL_CLIENT_SECRET || process.env.PAYPAL_CLIENT_SECRET || '';
+const PAYPAL_SANDBOX = process.env.PAYPAL_ENVIRONMENT === 'sandbox'; // Use environment variable
 
 // Helper to safely read header values (handles string | string[])
 function getHeader(headers: any, name: string): string | undefined {
@@ -18,13 +18,13 @@ function getHeader(headers: any, name: string): string | undefined {
   return undefined;
 }
 
-// KeyAuth configuration
+// KeyAuth configuration - Use environment variables
 const KEYAUTH_CONFIG = {
-  name: "futbot",
-  ownerid: "j5oBWrvrnm",
-  secret: "71d7d7717aea788ae29b063fab062482e707ae9826c1e425acffaa7cd816dfc5",
-  version: "1.0.0",
-  url: "https://keyauth.win/api/1.2/"
+  name: process.env.KEYAUTH_NAME || "futbot",
+  ownerid: process.env.KEYAUTH_OWNER_ID || "",
+  secret: process.env.KEYAUTH_SECRET || "",
+  version: process.env.KEYAUTH_VERSION || "1.0.0",
+  url: process.env.KEYAUTH_URL || "https://keyauth.win/api/1.2/"
 };
 
 // Subscription plans mapping
@@ -307,9 +307,10 @@ async function handleSuccessfulPayment(event: any) {
     }
 
     // Find matching subscription plan
-    const subscriptionPlan = SUBSCRIPTION_PLANS[amount];
+    const amountStr = String(amount); // Convert to string to match object keys
+    const subscriptionPlan = SUBSCRIPTION_PLANS[amountStr as keyof typeof SUBSCRIPTION_PLANS];
     if (!subscriptionPlan) {
-      console.warn(`Unknown subscription amount (${amount}), ignoring event.`);
+      console.warn(`Unknown subscription amount (${amountStr}), ignoring event.`);
       return; // ignore unrecognized simulator/test amounts
     }
 
