@@ -73,7 +73,7 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
       console.log('Creating PayPal order...');
       
       // Create PayPal order with the plan details and user info
-      const order = await actions.order.create({
+      const orderRequest: any = {
         intent: 'CAPTURE',
         purchase_units: [{
           amount: {
@@ -88,9 +88,6 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
             timestamp: Date.now()
           }),
         }],
-        payer: {
-          email_address: userEmail
-        },
         application_context: {
           brand_name: 'FUTBot',
           user_action: 'PAY_NOW',
@@ -98,7 +95,14 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
             payee_preferred: 'IMMEDIATE_PAYMENT_REQUIRED'
           }
         }
-      });
+      };
+
+      // Only set payer email if it looks valid
+      if (userEmail && userEmail.includes('@')) {
+        orderRequest.payer = { email_address: userEmail };
+      }
+
+      const order = await actions.order.create(orderRequest);
       
       console.log('PayPal order created successfully:', order);
       return order;
@@ -128,7 +132,7 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
     } finally {
       setIsProcessing(false);
     }
-  }, [plan]);
+  }, [plan, userEmail, username]);
 
   const handlePayPalApprove = useCallback(async (_data: OnApproveData, actions: OnApproveActions) => {
     if (!actions.order) {
