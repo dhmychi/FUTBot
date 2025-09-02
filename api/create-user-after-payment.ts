@@ -156,7 +156,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     registerPayload.append('key', licenseKey);
     registerPayload.append('email', email);
 
-    console.log('🔄 Registering KeyAuth user...');
+    console.log('🔄 Registering KeyAuth user with payload:', {
+      type: 'register',
+      name: KEYAUTH_CONFIG.name,
+      ownerid: KEYAUTH_CONFIG.ownerid ? '***' : 'MISSING',
+      secret: KEYAUTH_CONFIG.secret ? '***' : 'MISSING',
+      sessionid: sessionId ? '***' : 'MISSING',
+      username: email,
+      password: accessCode ? `***${accessCode.length}chars***` : 'MISSING',
+      key: licenseKey ? '***' : 'MISSING',
+      email: email
+    });
+    
     const registerResponse = await axios.post(KEYAUTH_CONFIG.url, registerPayload, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
