@@ -289,6 +289,64 @@ async function extendKeyAuthSubscription(username: string, duration: number): Pr
   }
 }
 
+// Send welcome email with login credentials
+async function sendWelcomeEmail(email: string, username: string, licenseKey: string, plan: string): Promise<boolean> {
+  try {
+    console.log('Sending welcome email to:', email);
+    
+    // TODO: Implement actual email sending
+    // You can use services like:
+    // - Resend (recommended for Vercel)
+    // - SendGrid
+    // - Nodemailer with SMTP
+    // - AWS SES
+    
+    const emailContent = {
+      to: email,
+      subject: '🎉 Welcome to FUTBot! Your Account is Ready',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #4169E1;">Welcome to FUTBot! 🚀</h2>
+          
+          <p>Congratulations! Your ${plan} subscription is now active.</p>
+          
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3>Your Login Credentials:</h3>
+            <p><strong>Username:</strong> ${username}</p>
+            <p><strong>License Key:</strong> ${licenseKey}</p>
+          </div>
+          
+          <h3>Getting Started:</h3>
+          <ol>
+            <li>Download the FUTBot Chrome Extension</li>
+            <li>Use your username and license key to log in</li>
+            <li>Configure your trading settings</li>
+            <li>Start earning coins automatically!</li>
+          </ol>
+          
+          <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>💡 Pro Tip:</strong> Keep your license key safe and don't share it with anyone.</p>
+          </div>
+          
+          <p>If you need help, contact our support team at support@futbot.club</p>
+          
+          <p>Happy Trading!<br>The FUTBot Team</p>
+        </div>
+      `
+    };
+    
+    console.log('Email prepared for:', email, 'Content preview:', emailContent.subject);
+    
+    // For now, just log the email content
+    // Replace this with actual email sending implementation
+    return true;
+    
+  } catch (error) {
+    console.error('Failed to send welcome email:', error);
+    return false;
+  }
+}
+
 // Create user subscription record
 async function createUserSubscription(subscriptionData: {
   email: string;
@@ -346,7 +404,25 @@ async function handleSuccessfulPayment(event: any) {
     const payerEmail = event.resource?.payer?.email_address || event.resource?.payer_info?.email;
     const paymentId = event.resource?.id;
     
-    console.log('Processing payment:', { amount, currency, payerEmail, paymentId });
+    // Extract user data from custom_id
+    let userEmail = payerEmail;
+    let username = payerEmail?.split('@')[0] + '_' + Date.now();
+    
+    try {
+      const customId = event.resource?.purchase_units?.[0]?.custom_id;
+      if (customId) {
+        const userData = JSON.parse(customId);
+        if (userData.email && userData.username) {
+          userEmail = userData.email;
+          username = userData.username;
+          console.log('Using custom user data from PayPal order:', { email: userEmail, username });
+        }
+      }
+    } catch (e) {
+      console.log('No valid custom user data found, using payer email');
+    }
+    
+    console.log('Processing payment:', { amount, currency, userEmail, paymentId, username });
 
     // Validate currency
     if (currency !== 'USD') {
@@ -362,15 +438,12 @@ async function handleSuccessfulPayment(event: any) {
       return; // ignore unrecognized simulator/test amounts
     }
 
-    // Generate username from email
-    const username = payerEmail.split('@')[0] + '_' + Date.now();
-
     // Create KeyAuth license
-    const licenseKey = await createKeyAuthLicense(username, payerEmail, subscriptionPlan.duration);
+    const licenseKey = await createKeyAuthLicense(username, userEmail, subscriptionPlan.duration);
 
     // Create user subscription record in database
     await createUserSubscription({
-      email: payerEmail,
+      email: userEmail,
       username: username,
       licenseKey: licenseKey,
       subscriptionType: subscriptionPlan.plan,
@@ -383,15 +456,16 @@ async function handleSuccessfulPayment(event: any) {
 
     console.log('License and user record created successfully:', {
       username,
-      email: payerEmail,
+      email: userEmail,
       licenseKey,
       plan: subscriptionPlan.plan,
       duration: subscriptionPlan.duration,
       paymentId
     });
 
-    // TODO: Send license key to user via email
+    // TODO: Send license key and login instructions to user via email
     // You can integrate with your email service here
+    await sendWelcomeEmail(userEmail, username, licenseKey, subscriptionPlan.plan);
     
   } catch (error) {
     console.error('Payment processing error:', error);

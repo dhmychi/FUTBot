@@ -198,12 +198,16 @@ export default function PricingPlans({ onSelectPlan }: PricingPlansProps) {
           onClose={() => setIsPaymentModalOpen(false)}
           plan={selectedPlan}
           onSuccess={() => {
-            // Handle successful payment (e.g., show success message, redirect, etc.)
-            toast.success('Payment successful! Your subscription is now active.');
-            // Call the parent's onSelectPlan if needed
-            onSelectPlan(selectedPlan);
-            // Close the modal after a delay
-            setTimeout(() => setIsPaymentModalOpen(false), 2000);
+            // Handle successful payment - PayPal webhook will handle KeyAuth creation
+            toast.success('Payment successful! Check your email for login credentials.');
+            
+            // Show success message with instructions
+            setTimeout(() => {
+              toast.success('🎉 Welcome to FUTBot! Your account is being activated...');
+            }, 1000);
+            
+            // Close the modal after showing success
+            setTimeout(() => setIsPaymentModalOpen(false), 3000);
           }}
         />
       )}

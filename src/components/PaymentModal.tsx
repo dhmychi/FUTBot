@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PayPalButtons } from '@paypal/react-paypal-js';
 import type { CreateOrderActions, OnApproveData, OnApproveActions } from '@paypal/paypal-js';
 import toast from 'react-hot-toast';
@@ -23,6 +23,9 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
   const [isProcessing, setIsProcessing] = useState(false);
   const [paypalError, setPaypalError] = useState('');
   const [paypalReady, setPaypalReady] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+  const [username, setUsername] = useState('');
+  const [showUserForm, setShowUserForm] = useState(true);
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -30,8 +33,24 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
       setPaypalError('');
       setIsProcessing(false);
       setPaypalReady(false);
+      setShowUserForm(true);
+      setUserEmail('');
+      setUsername('');
     }
   }, [isOpen]);
+
+  const handleUserFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userEmail || !username) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+    if (!userEmail.includes('@')) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    setShowUserForm(false);
+  };
 
   const buttonStyle = {
     layout: 'vertical' as const,
@@ -53,7 +72,7 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
       
       console.log('Creating PayPal order...');
       
-      // Create PayPal order with the plan details
+      // Create PayPal order with the plan details and user info
       const order = await actions.order.create({
         intent: 'CAPTURE',
         purchase_units: [{
@@ -62,8 +81,16 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
             currency_code: 'USD',
           },
           description: `FUTBot ${plan.name} Subscription`,
-          custom_id: `futbot_${plan.id}_${Date.now()}`,
+          custom_id: JSON.stringify({
+            planId: plan.id,
+            email: userEmail,
+            username: username,
+            timestamp: Date.now()
+          }),
         }],
+        payer: {
+          email_address: userEmail
+        },
         application_context: {
           brand_name: 'FUTBot',
           user_action: 'PAY_NOW',
@@ -234,7 +261,51 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
             
             <div className="space-y-4">
               <div className="mt-6">
-                {paypalError ? (
+                {showUserForm ? (
+                  <form onSubmit={handleUserFormSubmit} className="space-y-4">
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        value={userEmail}
+                        onChange={(e) => setUserEmail(e.target.value)}
+                        className="w-full px-4 py-3 bg-futbot-surface-light border border-gray-600 rounded-lg 
+                                 text-white placeholder-gray-400 focus:outline-none focus:border-futbot-primary"
+                        placeholder="your@email.com"
+                        required
+                      />
+                      <p className="text-xs text-gray-400 mt-1">Your login credentials will be sent here</p>
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
+                        Desired Username *
+                      </label>
+                      <input
+                        type="text"
+                        id="username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="w-full px-4 py-3 bg-futbot-surface-light border border-gray-600 rounded-lg 
+                                 text-white placeholder-gray-400 focus:outline-none focus:border-futbot-primary"
+                        placeholder="Choose a username"
+                        required
+                      />
+                      <p className="text-xs text-gray-400 mt-1">This will be your FUTBot username</p>
+                    </div>
+                    
+                    <button
+                      type="submit"
+                      className="w-full py-3 bg-futbot-primary hover:bg-futbot-primary/80 text-white 
+                               rounded-lg font-medium transition-colors"
+                    >
+                      Continue to Payment
+                    </button>
+                  </form>
+                ) : paypalError ? (
                   <div className="text-red-400 text-center py-4">
                     <p className="mb-2">{paypalError}</p>
                     <button
