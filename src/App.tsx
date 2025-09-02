@@ -21,16 +21,18 @@ const paypalOptions: PayPalScriptOptions = {
   // Simplified funding options for sandbox environment
   disableFunding: ['card', 'credit', 'paylater', 'venmo'],
   // Stable configuration for sandbox
-  debug: true, // Enable debug for troubleshooting
+  debug: false, // Disable debug for production
   dataNamespace: 'paypal_sdk',
   integrationDate: '2023-10-01',
   'enable-funding': ['paypal'],
   // Add stability options
   'data-sdk-integration-source': 'button-factory',
-  // Ensure proper session handling
-  'data-client-token': undefined,
-  // Force clean session
-  'data-csp-nonce': undefined
+  // Ensure proper session handling and UID attribute
+  'data-uid-auto': true,
+  // Force session stability
+  'data-page-type': 'checkout',
+  // Add merchant configuration
+  'data-merchant-id': import.meta.env.VITE_PAYPAL_CLIENT_ID
 };
 
 function App() {

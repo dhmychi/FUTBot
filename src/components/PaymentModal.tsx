@@ -165,6 +165,12 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
       } else if (errorMessage.includes('Window closed before response')) {
         setPaypalError('Payment window was closed. Please try again.');
         toast.error('Payment was interrupted. Please try again.');
+      } else if (errorMessage.includes('global_session_not_found')) {
+        setPaypalError('PayPal session issue detected. Please refresh the page and try again.');
+        toast.error('PayPal session issue. Please refresh the page and try again.');
+      } else if (errorMessage.includes('missing') || errorMessage.includes('uid')) {
+        setPaypalError('PayPal initialization issue. Please refresh the page and try again.');
+        toast.error('PayPal initialization issue. Please refresh and try again.');
       } else {
         setPaypalError(`PayPal error: ${errorMessage}`);
         toast.error(`PayPal error: ${errorMessage}`);
@@ -185,9 +191,12 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
   }, []);
 
   const handlePayPalInit = useCallback(() => {
-    console.log('PayPal buttons initialized');
+    console.log('PayPal buttons initialized successfully');
     setPaypalReady(true);
     setPaypalError('');
+    
+    // Clear any existing errors and reset processing state
+    setIsProcessing(false);
   }, []);
 
   if (!isOpen) return null;
