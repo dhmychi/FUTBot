@@ -18,15 +18,19 @@ const paypalOptions: PayPalScriptOptions = {
   commit: true,
   vault: false,
   components: 'buttons',
-  // Simplified funding options for live environment
+  // Simplified funding options for sandbox environment
   disableFunding: ['card', 'credit', 'paylater', 'venmo'],
-  // Stable configuration
-  debug: false,
+  // Stable configuration for sandbox
+  debug: true, // Enable debug for troubleshooting
   dataNamespace: 'paypal_sdk',
   integrationDate: '2023-10-01',
   'enable-funding': ['paypal'],
   // Add stability options
-  'data-sdk-integration-source': 'button-factory'
+  'data-sdk-integration-source': 'button-factory',
+  // Ensure proper session handling
+  'data-client-token': undefined,
+  // Force clean session
+  'data-csp-nonce': undefined
 };
 
 function App() {

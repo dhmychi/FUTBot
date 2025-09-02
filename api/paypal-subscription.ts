@@ -44,16 +44,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   ];
   
   const origin = req.headers.origin;
+  
+  // Always set CORS headers
   if (allowedOrigins.includes(origin as string)) {
     res.setHeader('Access-Control-Allow-Origin', origin as string);
   } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Origin', 'https://www.futbot.club');
   }
   
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
 
+  // Handle preflight request
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }

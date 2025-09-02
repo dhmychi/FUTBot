@@ -22,7 +22,6 @@ interface PaymentModalProps {
 export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: PaymentModalProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paypalError, setPaypalError] = useState('');
-  const [paypalReady, setPaypalReady] = useState(false);
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -79,16 +78,19 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
       console.error('Error creating PayPal order:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       
-      // Handle specific PayPal errors
+      // Handle specific PayPal errors with better recovery
       if (errorMessage.includes('Target window is closed')) {
         setPaypalError('Payment window was closed unexpectedly. Please try again.');
         toast.error('Payment window closed. Please try again.');
-      } else if (errorMessage.includes('popup')) {
+      } else if (errorMessage.includes('popup') || errorMessage.includes('blocked')) {
         setPaypalError('Popup blocked. Please allow popups and try again.');
         toast.error('Popup blocked. Please allow popups and try again.');
-      } else if (errorMessage.includes('network')) {
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
         setPaypalError('Network error. Please check your connection and try again.');
         toast.error('Network error. Please try again.');
+      } else if (errorMessage.includes('global_session_not_found')) {
+        setPaypalError('PayPal session expired. Please refresh the page and try again.');
+        toast.error('PayPal session expired. Please refresh and try again.');
       } else {
         setPaypalError(`Payment error: ${errorMessage}`);
         toast.error(`Payment error: ${errorMessage}`);

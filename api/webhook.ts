@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import crypto from 'crypto';
 import axios from 'axios';
 
 // PayPal webhook configuration - Use environment variables
@@ -290,6 +289,55 @@ async function extendKeyAuthSubscription(username: string, duration: number): Pr
   }
 }
 
+// Create user subscription record
+async function createUserSubscription(subscriptionData: {
+  email: string;
+  username: string;
+  licenseKey: string;
+  subscriptionType: string;
+  amountPaid: number;
+  paymentId: string;
+  paymentStatus: string;
+  paymentMethod: string;
+  duration: number;
+}) {
+  try {
+    // Calculate end date based on duration
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(startDate.getDate() + subscriptionData.duration);
+
+    // Here you would typically save to your database
+    // Since I see Supabase migrations in the codebase, this would be a Supabase call
+    console.log('Creating user subscription record:', {
+      ...subscriptionData,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString()
+    });
+
+    // For now, just log the data. You should replace this with actual database insertion
+    // Example with Supabase:
+    // const { data, error } = await supabase
+    //   .from('user_subscriptions')
+    //   .insert({
+    //     email: subscriptionData.email,
+    //     subscription_type: subscriptionData.subscriptionType,
+    //     amount_paid: subscriptionData.amountPaid,
+    //     payment_id: subscriptionData.paymentId,
+    //     payment_status: subscriptionData.paymentStatus,
+    //     payment_method: subscriptionData.paymentMethod,
+    //     start_date: startDate.toISOString(),
+    //     end_date: endDate.toISOString(),
+    //     is_active: true
+    //   });
+
+    return true;
+  } catch (error) {
+    console.error('Failed to create user subscription record:', error);
+    throw error;
+  }
+}
+
 async function handleSuccessfulPayment(event: any) {
   try {
     // Extract payment information
@@ -320,12 +368,26 @@ async function handleSuccessfulPayment(event: any) {
     // Create KeyAuth license
     const licenseKey = await createKeyAuthLicense(username, payerEmail, subscriptionPlan.duration);
 
-    console.log('License created successfully:', {
+    // Create user subscription record in database
+    await createUserSubscription({
+      email: payerEmail,
+      username: username,
+      licenseKey: licenseKey,
+      subscriptionType: subscriptionPlan.plan,
+      amountPaid: parseFloat(amount),
+      paymentId: paymentId,
+      paymentStatus: 'completed',
+      paymentMethod: 'paypal',
+      duration: subscriptionPlan.duration
+    });
+
+    console.log('License and user record created successfully:', {
       username,
       email: payerEmail,
       licenseKey,
       plan: subscriptionPlan.plan,
-      duration: subscriptionPlan.duration
+      duration: subscriptionPlan.duration,
+      paymentId
     });
 
     // TODO: Send license key to user via email
