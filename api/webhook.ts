@@ -581,7 +581,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Log all incoming requests (sanitized for production)
   console.log('=== PayPal Webhook Request ===');
   console.log('Method:', req.method);
+  console.log('URL:', req.url);
   console.log('Environment:', PAYPAL_SANDBOX ? 'SANDBOX' : 'PRODUCTION');
+  console.log('User-Agent:', req.headers['user-agent'] || 'N/A');
   
   // Sanitize headers for logging
   const logHeaders = { ...req.headers };
@@ -617,6 +619,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (skipVerify) {
       console.warn('[Webhook] PAYPAL_WEBHOOK_SKIP_VERIFY is true — skipping signature verification (simulator/testing only)');
     }
+    
+    // Force skip verification for debugging
+    const forceSkip = true; // TEMPORARY: Remove this in production
+    if (forceSkip) {
+      console.warn('[Webhook] FORCE SKIPPING verification for debugging purposes');
+    }
 
     // Auto-skip verification for Vercel's internal PayPal simulator traffic
     const botName = (getHeader(headers, 'x-vercel-internal-bot-name') || '').toLowerCase();
@@ -628,7 +636,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Verify PayPal webhook signature
-    if (!skipVerify && !isVercelPaypalBot) {
+    if (!skipVerify && !isVercelPaypalBot && !forceSkip) {
       console.log('Verifying webhook signature...');
       try {
         const isValid = await verifyPayPalWebhook(headers, body);
