@@ -49,6 +49,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       throw new Error('KeyAuth configuration missing');
     }
 
+    // Log configuration for debugging
+    console.log('KeyAuth Config Debug:', {
+      name: KEYAUTH_CONFIG.name,
+      ownerid: KEYAUTH_CONFIG.ownerid ? '***' : 'MISSING',
+      secret: KEYAUTH_CONFIG.secret ? '***' : 'MISSING',
+      sellerKey: KEYAUTH_SELLER_KEY ? `***${KEYAUTH_SELLER_KEY.length}chars***` : 'MISSING'
+    });
+
     // Initialize KeyAuth session
     const initPayload = new URLSearchParams();
     initPayload.append('type', 'init');
@@ -72,28 +80,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Create license key using Seller API if available; fallback to App API
     let licenseKey: string | undefined;
-    if (KEYAUTH_SELLER_KEY) {
+    if (KEYAUTH_SELLER_KEY && KEYAUTH_SELLER_KEY.length === 32) {
       console.log('🎫 Creating KeyAuth license via Seller API...');
-      const params = new URLSearchParams();
-      params.append('sellerkey', KEYAUTH_SELLER_KEY);
-      params.append('type', 'add');
-      params.append('expiry', '30');
-      params.append('amount', '1');
-      params.append('level', '1');
-      params.append('mask', 'XXXXXX-XXXXXX-XXXXXX');
-      params.append('format', 'JSON');
-      params.append('note', `Created for ${email}`);
+      try {
+        const params = new URLSearchParams();
+        params.append('sellerkey', KEYAUTH_SELLER_KEY);
+        params.append('type', 'add');
+        params.append('expiry', '30');
+        params.append('amount', '1');
+        params.append('level', '1');
+        params.append('mask', 'XXXXXX-XXXXXX-XXXXXX');
+        params.append('format', 'JSON');
+        params.append('note', `Created for ${email}`);
 
-      const url = 'https://keyauth.win/api/seller/';
-      const resp = await axios.post(url, params, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
-      console.log('Seller API add response:', resp.data);
-      if (!resp.data?.success) {
-        throw new Error(resp.data?.message || 'Seller API add failed');
+        const url = 'https://keyauth.win/api/seller/';
+        const resp = await axios.post(url, params, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+        console.log('Seller API add response:', resp.data);
+        if (!resp.data?.success) {
+          throw new Error(resp.data?.message || 'Seller API add failed');
+        }
+        licenseKey = resp.data.key || resp.data.keys?.[0];
+        console.log('✅ License created via Seller API:', licenseKey);
+      } catch (sellerError) {
+        console.error('❌ Seller API failed, falling back to App API:', sellerError);
+        // Continue to App API fallback
       }
-      licenseKey = resp.data.key || resp.data.keys?.[0];
     } else {
+      if (KEYAUTH_SELLER_KEY) {
+        console.warn(`⚠️ Invalid seller key length: ${KEYAUTH_SELLER_KEY.length} chars (expected 32)`);
+      }
+      console.log('🎫 No valid seller key, using App API...');
+    }
+
+    if (!licenseKey) {
       console.log('🎫 Creating KeyAuth license via App API (no seller key found)...');
       const licensePayload = new URLSearchParams();
       licensePayload.append('type', 'addkey');
