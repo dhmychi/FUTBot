@@ -80,45 +80,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const sessionId = initResponse.data.sessionid;
     console.log('✅ KeyAuth session initialized');
 
-    // Create a new license key automatically for this customer
+    // Get license key from pre-created pool or use fallback
+    const LICENSE_KEYS_POOL = (process.env.KEYAUTH_LICENSE_KEYS || '').split(',').filter(key => key.trim());
     let licenseKey: string;
     
-    if (KEYAUTH_SELLER_KEY && KEYAUTH_SELLER_KEY.length === 32) {
-      console.log('🎫 Creating new license key via Seller API...');
-      try {
-        const params = new URLSearchParams();
-        params.append('sellerkey', KEYAUTH_SELLER_KEY);
-        params.append('type', 'add');
-        params.append('expiry', '30'); // 30 days subscription
-        params.append('amount', '1'); // create 1 key
-        params.append('level', '1'); // subscription level
-        params.append('mask', '******-******-******-******'); // KeyAuth v1.3 format
-        params.append('format', 'JSON');
-        params.append('note', `Auto-generated for ${email} - Payment: ${paymentId}`);
-
-        const response = await axios.post('https://keyauth.win/api/seller/', params, {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          timeout: 10000
-        });
-
-        console.log('Seller API response:', response.data);
-
-        if (response.data?.success && response.data.key) {
-          licenseKey = response.data.key;
-          console.log('✅ New license key created:', `***${licenseKey.slice(-4)}`);
-        } else {
-          throw new Error(response.data?.message || 'Failed to create license key');
-        }
-      } catch (error: any) {
-        console.error('❌ Seller API failed:', error.message);
-        // Fallback to generated key
-        licenseKey = `FUTBOT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-        console.log('⚠️ Using fallback generated key:', `***${licenseKey.slice(-4)}`);
-      }
+    if (LICENSE_KEYS_POOL.length > 0) {
+      // Use a random key from the pool
+      const randomIndex = Math.floor(Math.random() * LICENSE_KEYS_POOL.length);
+      licenseKey = LICENSE_KEYS_POOL[randomIndex];
+      console.log('✅ Using license key from pool:', `***${licenseKey.slice(-4)}`);
     } else {
-      // No seller key available - use fallback
-      licenseKey = `FUTBOT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-      console.log('⚠️ No valid seller key, using generated key:', `***${licenseKey.slice(-4)}`);
+      // Use predefined default key or generate fallback
+      licenseKey = process.env.KEYAUTH_DEFAULT_LICENSE || `FUTBOT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      console.log('⚠️ No license keys in pool, using default/fallback:', `***${licenseKey.slice(-4)}`);
     }
 
     // Register user in KeyAuth
