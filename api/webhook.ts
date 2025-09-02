@@ -641,8 +641,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.warn('[Webhook] PAYPAL_WEBHOOK_SKIP_VERIFY is true — skipping signature verification (simulator/testing only)');
     }
     
-    // Force skip verification for debugging
-    const forceSkip = true; // TEMPORARY: Remove this in production
+    // Force skip verification for debugging - DISABLED for production
+    const forceSkip = false; // Set to true only for debugging
     if (forceSkip) {
       console.warn('[Webhook] FORCE SKIPPING verification for debugging purposes');
     }

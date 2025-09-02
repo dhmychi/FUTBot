@@ -1,0 +1,5 @@
+[33m4c39b72[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m fix(api): convert /api/ping to TS handler and clean vercel config
+[33m900c27d[m build: enable JS api functions and set runtime for /api/ping
+[33md983793[m chore: add /api/ping endpoint for deployment verification
+[33mff06c56[m fix: add explicit function definitions for API endpoints in vercel.json
+[33m16d2b81[m fix: correct Vercel routing to not override API endpoints with index.html
