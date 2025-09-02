@@ -223,8 +223,8 @@ export default function LandingPage() {
     try {
       console.log('Creating PayPal order for plan:', plan.id);
       
-      // Use environment variable for API base URL
-      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://fut-bot-git-main-dhmychifahad-5000s-projects.vercel.app';
+      // Use same-origin to avoid CORS issues
+      const API_BASE = window.location.origin;
       
       const response = await fetch(`${API_BASE}/api/create-subscription`, {
         method: 'POST',
