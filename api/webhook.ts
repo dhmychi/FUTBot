@@ -295,8 +295,48 @@ async function extendKeyAuthSubscription(username: string, duration: number): Pr
   }
 }
 
+// Register a user in KeyAuth using a license key
+async function registerKeyAuthUser(username: string, password: string, licenseKey: string, email: string): Promise<boolean> {
+  try {
+    // Initialize session
+    const initResponse = await axios.post(KEYAUTH_CONFIG.url, {
+      type: 'init',
+      name: KEYAUTH_CONFIG.name,
+      ownerid: KEYAUTH_CONFIG.ownerid,
+      secret: KEYAUTH_CONFIG.secret,
+      version: KEYAUTH_CONFIG.version
+    });
+
+    if (!initResponse.data.success) {
+      throw new Error('KeyAuth initialization failed');
+    }
+
+    // Register user using license
+    const registerResponse = await axios.post(KEYAUTH_CONFIG.url, {
+      type: 'register',
+      name: KEYAUTH_CONFIG.name,
+      ownerid: KEYAUTH_CONFIG.ownerid,
+      secret: KEYAUTH_CONFIG.secret,
+      username,
+      password,
+      license: licenseKey,
+      email
+    });
+
+    if (!registerResponse.data.success) {
+      console.error('KeyAuth register failed:', registerResponse.data);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('KeyAuth user registration failed:', error);
+    return false;
+  }
+}
+
 // Send welcome email with login credentials (Resend)
-async function sendWelcomeEmail(email: string, username: string, licenseKey: string, plan: string): Promise<boolean> {
+async function sendWelcomeEmail(email: string, username: string, licenseKey: string, plan: string, accessCode?: string): Promise<boolean> {
   try {
     if (!resendClient) {
       console.warn('[Email] RESEND_API_KEY not configured; skipping email send');
@@ -311,7 +351,8 @@ async function sendWelcomeEmail(email: string, username: string, licenseKey: str
         <p>Congratulations! Your <strong>${plan}</strong> subscription is now active.</p>
         <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin: 16px 0;">
           <h3>Your Credentials</h3>
-          <p><strong>Username:</strong> ${username}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          ${accessCode ? `<p><strong>Access Code:</strong> ${accessCode}</p>` : ''}
           <p><strong>License Key:</strong> ${licenseKey}</p>
         </div>
         <h3>Getting Started</h3>
@@ -398,16 +439,25 @@ async function handleSuccessfulPayment(event: any) {
     
     // Extract user data from custom_id
     let userEmail = payerEmail;
+    // Use email local-part as username by default
     let username = payerEmail?.split('@')[0] + '_' + Date.now();
+    let accessCode: string | undefined = undefined;
     
     try {
       const customId = event.resource?.purchase_units?.[0]?.custom_id;
       if (customId) {
         const userData = JSON.parse(customId);
-        if (userData.email && userData.username) {
+        if (userData.email) {
           userEmail = userData.email;
-          username = userData.username;
-          console.log('Using custom user data from PayPal order:', { email: userEmail, username });
+        }
+        if (userData.accessCode) {
+          accessCode = String(userData.accessCode);
+        }
+        if (userEmail) {
+          username = userEmail.split('@')[0] + '_' + Date.now();
+        }
+        if (userEmail || accessCode) {
+          console.log('Using custom user data from PayPal order:', { email: userEmail, accessCodePresent: !!accessCode });
         }
       }
     } catch (e) {
@@ -433,6 +483,12 @@ async function handleSuccessfulPayment(event: any) {
     // Create KeyAuth license
     const licenseKey = await createKeyAuthLicense(username, userEmail, subscriptionPlan.duration);
 
+    // If customer provided access code, register a KeyAuth user using the license
+    if (accessCode) {
+      const registered = await registerKeyAuthUser(username, accessCode, licenseKey, userEmail);
+      console.log('KeyAuth user registration:', registered ? 'success' : 'failed');
+    }
+
     // Create user subscription record in database
     await createUserSubscription({
       email: userEmail,
@@ -457,7 +513,7 @@ async function handleSuccessfulPayment(event: any) {
 
     // TODO: Send license key and login instructions to user via email
     // You can integrate with your email service here
-    await sendWelcomeEmail(userEmail, username, licenseKey, subscriptionPlan.plan);
+    await sendWelcomeEmail(userEmail, username, licenseKey, subscriptionPlan.plan, accessCode);
     
   } catch (error) {
     console.error('Payment processing error:', error);

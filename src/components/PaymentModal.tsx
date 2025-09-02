@@ -24,8 +24,10 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
   const [paypalError, setPaypalError] = useState('');
   const [paypalReady, setPaypalReady] = useState(false);
   const [userEmail, setUserEmail] = useState('');
-  const [username, setUsername] = useState('');
+  // Access code the customer will use to log in (acts like password)
+  const [accessCode, setAccessCode] = useState('');
   const [showUserForm, setShowUserForm] = useState(true);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -35,18 +37,23 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
       setPaypalReady(false);
       setShowUserForm(true);
       setUserEmail('');
-      setUsername('');
+      setAccessCode('');
+      setShowSuccess(false);
     }
   }, [isOpen]);
 
   const handleUserFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userEmail || !username) {
+    if (!userEmail || !accessCode) {
       toast.error('Please fill in all fields');
       return;
     }
     if (!userEmail.includes('@')) {
       toast.error('Please enter a valid email address');
+      return;
+    }
+    if (accessCode.length < 6) {
+      toast.error('Access code must be at least 6 characters');
       return;
     }
     setShowUserForm(false);
@@ -84,7 +91,7 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
           custom_id: JSON.stringify({
             planId: plan.id,
             email: userEmail,
-            username: username,
+            accessCode: accessCode,
             timestamp: Date.now()
           }),
         }],
@@ -132,7 +139,7 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
     } finally {
       setIsProcessing(false);
     }
-  }, [plan, userEmail, username]);
+  }, [plan, userEmail, accessCode]);
 
   const handlePayPalApprove = useCallback(async (_data: OnApproveData, actions: OnApproveActions) => {
     if (!actions.order) {
@@ -150,16 +157,9 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
       const details = await actions.order.capture();
       console.log('Payment completed successfully', details);
       
-      // Show success message
-      toast.success('Payment successful! Your subscription is being activated.');
-      
-      // Call the success callback
-      onSuccess();
-      
-      // Close the modal after a short delay
-      setTimeout(() => {
-        onClose();
-      }, 1500);
+      // Show success message and credentials
+      setShowSuccess(true);
+      toast.success('Payment successful! Welcome to FUTBot.');
       
     } catch (error) {
       console.error('Payment approval error:', error);
@@ -265,7 +265,22 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
             
             <div className="space-y-4">
               <div className="mt-6">
-                {showUserForm ? (
+                {showSuccess ? (
+                  <div className="space-y-4 text-center">
+                    <h3 className="text-2xl font-bold text-white">Welcome to FUTBot 🎉</h3>
+                    <p className="text-gray-300">Your subscription is active. Use these credentials to log in to the extension:</p>
+                    <div className="bg-futbot-surface-light border border-gray-700 rounded-lg p-4 text-left">
+                      <p className="text-sm text-gray-300"><span className="font-semibold text-white">Email:</span> {userEmail}</p>
+                      <p className="text-sm text-gray-300 mt-1"><span className="font-semibold text-white">Access Code:</span> {accessCode}</p>
+                    </div>
+                    <button
+                      onClick={onClose}
+                      className="w-full py-3 bg-futbot-primary hover:bg-futbot-primary/80 text-white rounded-lg font-medium transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                ) : showUserForm ? (
                   <form onSubmit={handleUserFormSubmit} className="space-y-4">
                     <div>
                       <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
@@ -285,20 +300,21 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
                     </div>
                     
                     <div>
-                      <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
-                        Desired Username *
+                      <label htmlFor="accessCode" className="block text-sm font-medium text-gray-300 mb-2">
+                        Access Code (Password) *
                       </label>
                       <input
-                        type="text"
-                        id="username"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
+                        type="password"
+                        id="accessCode"
+                        value={accessCode}
+                        onChange={(e) => setAccessCode(e.target.value)}
                         className="w-full px-4 py-3 bg-futbot-surface-light border border-gray-600 rounded-lg 
                                  text-white placeholder-gray-400 focus:outline-none focus:border-futbot-primary"
-                        placeholder="Choose a username"
+                        placeholder="Create a secure access code"
                         required
+                        minLength={6}
                       />
-                      <p className="text-xs text-gray-400 mt-1">This will be your FUTBot username</p>
+                      <p className="text-xs text-gray-400 mt-1">You'll use this to log in to the FUTBot extension</p>
                     </div>
                     
                     <button
