@@ -378,16 +378,16 @@ async function sendWelcomeEmail(email: string, username: string, licenseKey: str
         <h2 style="color: #4169E1;">Welcome to FUTBot! 🚀</h2>
         <p>Congratulations! Your <strong>${plan}</strong> subscription is now active.</p>
         <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <h3>Your Credentials</h3>
-          <p><strong>Email:</strong> ${email}</p>
-          ${accessCode ? `<p><strong>Access Code:</strong> ${accessCode}</p>` : ''}
+          <h3>Your Login Credentials</h3>
+          <p><strong>Username:</strong> ${email}</p>
+          ${accessCode ? `<p><strong>Password:</strong> ${accessCode}</p>` : ''}
           <p><strong>License Key:</strong> ${licenseKey}</p>
         </div>
         <h3>Getting Started</h3>
         <ol>
           <li>Install the FUTBot Chrome Extension.</li>
-          <li>Log in using your username and license key.</li>
-          <li>Configure your trading settings and start.</li>
+          <li>Log in using your email as username and your access code as password.</li>
+          <li>Configure your trading settings and start trading!</li>
         </ol>
         <p style="margin-top: 16px;">Need help? Contact us at <a href="mailto:support@futbot.club">support@futbot.club</a></p>
         <p>Happy Trading!<br/>FUTBot Team</p>
@@ -467,8 +467,8 @@ async function handleSuccessfulPayment(event: any) {
     
     // Extract user data from custom_id
     let userEmail = payerEmail;
-    // Use email local-part as username by default
-    let username = payerEmail?.split('@')[0] + '_' + Date.now();
+    // Use email as username directly - much simpler and clearer for users
+    let username = payerEmail;
     let accessCode: string | undefined = undefined;
     
     try {
@@ -477,19 +477,17 @@ async function handleSuccessfulPayment(event: any) {
         const userData = JSON.parse(customId);
         if (userData.email) {
           userEmail = userData.email;
+          username = userData.email; // Use email as username
         }
         if (userData.accessCode) {
           accessCode = String(userData.accessCode);
         }
-        if (userEmail) {
-          username = userEmail.split('@')[0] + '_' + Date.now();
-        }
         if (userEmail || accessCode) {
-          console.log('Using custom user data from PayPal order:', { email: userEmail, accessCodePresent: !!accessCode });
+          console.log('Using custom user data from PayPal order:', { email: userEmail, username, accessCodePresent: !!accessCode });
         }
       }
     } catch (e) {
-      console.log('No valid custom user data found, using payer email');
+      console.log('No valid custom user data found, using payer email as username');
     }
     
     console.log('Processing payment:', { amount, currency, userEmail, paymentId, username });
