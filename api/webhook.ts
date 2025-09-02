@@ -547,10 +547,20 @@ async function handleSuccessfulPayment(event: any) {
       return; // ignore unrecognized simulator/test amounts
     }
 
-    // Create KeyAuth license
-    console.log('🎫 Creating KeyAuth license:', { username, email: userEmail, duration: subscriptionPlan.duration });
-    const licenseKey = await createKeyAuthLicense(username, userEmail, subscriptionPlan.duration);
-    console.log('✅ KeyAuth license created:', licenseKey);
+    // Get license key from server pool
+    const LICENSE_KEYS_POOL = (process.env.KEYAUTH_LICENSE_KEYS || '').split(',').filter(key => key.trim());
+    let licenseKey: string;
+    
+    if (LICENSE_KEYS_POOL.length > 0) {
+      // Use a random key from the pool
+      const randomIndex = Math.floor(Math.random() * LICENSE_KEYS_POOL.length);
+      licenseKey = LICENSE_KEYS_POOL[randomIndex];
+      console.log('✅ Using license key from server pool:', `***${licenseKey.slice(-4)}`);
+    } else {
+      // Fallback: use a predefined license key
+      licenseKey = process.env.KEYAUTH_DEFAULT_LICENSE || `FUTBOT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      console.log('⚠️ No license keys in pool, using default/fallback:', `***${licenseKey.slice(-4)}`);
+    }
 
     // If customer provided access code, register a KeyAuth user using the license
     if (accessCode) {

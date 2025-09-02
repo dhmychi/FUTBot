@@ -42,7 +42,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       version: process.env.KEYAUTH_VERSION || process.env.KEYAUTH_APP_VERSION || "1.0.0",
       url: process.env.KEYAUTH_URL || "https://keyauth.win/api/1.2/"
     };
-    const KEYAUTH_SELLER_KEY = process.env.KEYAUTH_SELLER_KEY || '';
+    
+    // Pre-existing license keys pool (add these to Vercel environment variables)
+    const LICENSE_KEYS_POOL = (process.env.KEYAUTH_LICENSE_KEYS || '').split(',').filter(key => key.trim());
 
     // Validate KeyAuth config
     if (!KEYAUTH_CONFIG.ownerid || !KEYAUTH_CONFIG.secret) {
@@ -78,93 +80,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const sessionId = initResponse.data.sessionid;
     console.log('✅ KeyAuth session initialized');
 
-    // Create license key using Seller API if available; fallback to App API
-    let licenseKey: string | undefined;
-    if (KEYAUTH_SELLER_KEY && KEYAUTH_SELLER_KEY.length === 32) {
-      console.log('🎫 Creating KeyAuth license via Seller API...');
-      try {
-        const params = new URLSearchParams();
-        params.append('sellerkey', KEYAUTH_SELLER_KEY);
-        params.append('type', 'add');
-        params.append('expiry', '30'); // days
-        params.append('amount', '1'); // number of keys to generate
-        params.append('level', '1'); // subscription level
-        params.append('mask', '******-******-******-******'); // Correct v1.3 format
-        params.append('format', 'JSON');
-        params.append('note', `License for ${email} - Payment: ${paymentId}`);
-
-        const url = 'https://keyauth.win/api/seller/';
-        console.log('🔄 Calling Seller API with params:', {
-          sellerkey: '***',
-          type: 'add',
-          expiry: '30',
-          amount: '1',
-          level: '1',
-          mask: '******-******-******-******',
-          format: 'JSON'
-        });
-
-        const resp = await axios.post(url, params, {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          timeout: 10000
-        });
-        
-        console.log('Seller API response:', resp.data);
-        
-        if (!resp.data?.success) {
-          const errorMsg = resp.data?.message || 'Seller API add failed';
-          console.error('❌ Seller API error:', errorMsg);
-          throw new Error(errorMsg);
-        }
-        
-        // Handle different response formats
-        licenseKey = resp.data.key || resp.data.keys?.[0] || resp.data.license;
-        
-        if (!licenseKey) {
-          console.error('❌ No license key in Seller API response:', resp.data);
-          throw new Error('No license key returned from Seller API');
-        }
-        
-        console.log('✅ License created via Seller API:', licenseKey);
-      } catch (sellerError: any) {
-        console.error('❌ Seller API failed:', sellerError.message || sellerError);
-        // Continue to App API fallback
-      }
+    // Get license key from server pool
+    let licenseKey: string;
+    
+    if (LICENSE_KEYS_POOL.length > 0) {
+      // Use a random key from the pool
+      const randomIndex = Math.floor(Math.random() * LICENSE_KEYS_POOL.length);
+      licenseKey = LICENSE_KEYS_POOL[randomIndex];
+      console.log('✅ Using license key from server pool:', `***${licenseKey.slice(-4)}`);
     } else {
-      if (KEYAUTH_SELLER_KEY) {
-        console.warn(`⚠️ Invalid seller key length: ${KEYAUTH_SELLER_KEY.length} chars (expected 32)`);
-      }
-      console.log('🎫 No valid seller key, using App API fallback...');
-    }
-
-    if (!licenseKey) {
-      console.log('🎫 Creating KeyAuth license via App API (no seller key found)...');
-      const licensePayload = new URLSearchParams();
-      licensePayload.append('type', 'addkey');
-      licensePayload.append('name', KEYAUTH_CONFIG.name);
-      licensePayload.append('ownerid', KEYAUTH_CONFIG.ownerid);
-      licensePayload.append('secret', KEYAUTH_CONFIG.secret);
-      licensePayload.append('sessionid', sessionId);
-      licensePayload.append('expiry', '30');
-      licensePayload.append('mask', '******-******-******-******');
-      licensePayload.append('amount', '1');
-      licensePayload.append('level', '1');
-      licensePayload.append('note', `Created for ${email}`);
-
-      const licenseResponse = await axios.post(KEYAUTH_CONFIG.url, licensePayload, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
-
-      console.log('KeyAuth license response:', licenseResponse.data);
-      if (licenseResponse.data.success && licenseResponse.data.key) {
-        licenseKey = licenseResponse.data.key;
-      }
-    }
-
-    if (!licenseKey) {
-      // Fallback: use generated key if API fails
-      licenseKey = `FUTBOT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-      console.log('⚠️ License creation failed, using fallback:', licenseKey);
+      // Fallback: use a predefined license key
+      licenseKey = process.env.KEYAUTH_DEFAULT_LICENSE || `FUTBOT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      console.log('⚠️ No license keys in pool, using default/fallback:', `***${licenseKey.slice(-4)}`);
     }
 
     // Register user in KeyAuth
