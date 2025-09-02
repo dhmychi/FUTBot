@@ -14,6 +14,14 @@
       "use": "@vercel/node@latest"
     }
   ],
+  "functions": {
+    "api/webhook.ts": {
+      "runtime": "nodejs22.x"
+    },
+    "api/test-webhook.ts": {
+      "runtime": "nodejs22.x"
+    }
+  },
   "rewrites": [
     {
       "source": "/((?!api/).*)",
