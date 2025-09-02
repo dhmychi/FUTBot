@@ -42,6 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       version: process.env.KEYAUTH_VERSION || process.env.KEYAUTH_APP_VERSION || "1.0.0",
       url: process.env.KEYAUTH_URL || "https://keyauth.win/api/1.2/"
     };
+    const KEYAUTH_SELLER_KEY = process.env.KEYAUTH_SELLER_KEY || '';
 
     // Validate KeyAuth config
     if (!KEYAUTH_CONFIG.ownerid || !KEYAUTH_CONFIG.secret) {
@@ -69,31 +70,54 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const sessionId = initResponse.data.sessionid;
     console.log('✅ KeyAuth session initialized');
 
-    // Create license key using KeyAuth API first
-    console.log('🎫 Creating KeyAuth license...');
-    const licensePayload = new URLSearchParams();
-    licensePayload.append('type', 'addkey');
-    licensePayload.append('name', KEYAUTH_CONFIG.name);
-    licensePayload.append('ownerid', KEYAUTH_CONFIG.ownerid);
-    licensePayload.append('secret', KEYAUTH_CONFIG.secret);
-    licensePayload.append('sessionid', sessionId);
-    licensePayload.append('expiry', '30'); // 30 days
-    licensePayload.append('mask', 'XXXXXX-XXXXXX-XXXXXX');
-    licensePayload.append('amount', '1');
-    licensePayload.append('level', '1');
-    licensePayload.append('note', `Created for ${email}`);
+    // Create license key using Seller API if available; fallback to App API
+    let licenseKey: string | undefined;
+    if (KEYAUTH_SELLER_KEY) {
+      console.log('🎫 Creating KeyAuth license via Seller API...');
+      const params = new URLSearchParams();
+      params.append('sellerkey', KEYAUTH_SELLER_KEY);
+      params.append('type', 'add');
+      params.append('expiry', '30');
+      params.append('amount', '1');
+      params.append('level', '1');
+      params.append('mask', 'XXXXXX-XXXXXX-XXXXXX');
+      params.append('format', 'JSON');
+      params.append('note', `Created for ${email}`);
 
-    const licenseResponse = await axios.post(KEYAUTH_CONFIG.url, licensePayload, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    });
-
-    console.log('KeyAuth license response:', licenseResponse.data);
-
-    let licenseKey;
-    if (licenseResponse.data.success && licenseResponse.data.key) {
-      licenseKey = licenseResponse.data.key;
-      console.log('✅ KeyAuth license created:', licenseKey);
+      const url = 'https://keyauth.win/api/seller/';
+      const resp = await axios.post(url, params, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      console.log('Seller API add response:', resp.data);
+      if (!resp.data?.success) {
+        throw new Error(resp.data?.message || 'Seller API add failed');
+      }
+      licenseKey = resp.data.key || resp.data.keys?.[0];
     } else {
+      console.log('🎫 Creating KeyAuth license via App API (no seller key found)...');
+      const licensePayload = new URLSearchParams();
+      licensePayload.append('type', 'addkey');
+      licensePayload.append('name', KEYAUTH_CONFIG.name);
+      licensePayload.append('ownerid', KEYAUTH_CONFIG.ownerid);
+      licensePayload.append('secret', KEYAUTH_CONFIG.secret);
+      licensePayload.append('sessionid', sessionId);
+      licensePayload.append('expiry', '30');
+      licensePayload.append('mask', 'XXXXXX-XXXXXX-XXXXXX');
+      licensePayload.append('amount', '1');
+      licensePayload.append('level', '1');
+      licensePayload.append('note', `Created for ${email}`);
+
+      const licenseResponse = await axios.post(KEYAUTH_CONFIG.url, licensePayload, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+
+      console.log('KeyAuth license response:', licenseResponse.data);
+      if (licenseResponse.data.success && licenseResponse.data.key) {
+        licenseKey = licenseResponse.data.key;
+      }
+    }
+
+    if (!licenseKey) {
       // Fallback: use generated key if API fails
       licenseKey = `FUTBOT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
       console.log('⚠️ License creation failed, using fallback:', licenseKey);

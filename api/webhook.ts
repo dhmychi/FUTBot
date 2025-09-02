@@ -27,6 +27,9 @@ const KEYAUTH_CONFIG = {
   url: process.env.KEYAUTH_URL || "https://keyauth.win/api/1.2/"
 };
 
+// Optional seller key for license creation via Seller API
+const KEYAUTH_SELLER_KEY = process.env.KEYAUTH_SELLER_KEY || '';
+
 // Resend configuration
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@resend.dev';
@@ -239,8 +242,46 @@ async function verifyPayPalWebhook(headers: any, body: string): Promise<boolean>
 }
 
 // KeyAuth API helper functions
+async function createLicenseViaSeller(email: string, days: number): Promise<string> {
+  if (!KEYAUTH_SELLER_KEY) {
+    throw new Error('KEYAUTH_SELLER_KEY not set');
+  }
+
+  const params = new URLSearchParams();
+  params.append('sellerkey', KEYAUTH_SELLER_KEY);
+  params.append('type', 'add');
+  params.append('expiry', String(days));
+  params.append('amount', '1');
+  params.append('level', '1');
+  params.append('mask', 'XXXXXX-XXXXXX-XXXXXX');
+  params.append('format', 'JSON');
+  params.append('note', `Created for ${email}`);
+
+  const url = 'https://keyauth.win/api/seller/';
+  const resp = await axios.post(url, params, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+  });
+
+  console.log('Seller API add response:', resp.data);
+
+  if (!resp.data?.success) {
+    throw new Error(resp.data?.message || 'Seller API add failed');
+  }
+
+  return resp.data.key || resp.data.keys?.[0];
+}
 async function createKeyAuthLicense(username: string, email: string, duration: number): Promise<string> {
   try {
+    // Prefer Seller API if available (more reliable for license creation)
+    if (KEYAUTH_SELLER_KEY) {
+      try {
+        const key = await createLicenseViaSeller(email, duration);
+        return key;
+      } catch (sellerErr) {
+        console.error('Seller API license creation failed, falling back to App API:', sellerErr);
+      }
+    }
+
     // Initialize KeyAuth session
     const initPayload = new URLSearchParams();
     initPayload.append('type', 'init');
