@@ -157,6 +157,35 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
       const details = await actions.order.capture();
       console.log('Payment completed successfully', details);
       
+      // Create KeyAuth user immediately after payment
+      try {
+        console.log('🔄 Creating KeyAuth user after payment...');
+        const response = await fetch('/api/create-user-after-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: userEmail,
+            accessCode: accessCode,
+            paymentId: details.id,
+            planId: plan.id,
+            amount: plan.price
+          })
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('✅ KeyAuth user created successfully:', result);
+          toast.success('🎉 Account created! Check your email for login details.');
+        } else {
+          const error = await response.json();
+          console.error('❌ Failed to create KeyAuth user:', error);
+          toast.error('Payment successful, but account setup failed. Contact support.');
+        }
+      } catch (error) {
+        console.error('❌ KeyAuth user creation error:', error);
+        toast.error('Payment successful, but account setup failed. Contact support.');
+      }
+      
       // Show success message and credentials
       setShowSuccess(true);
       toast.success('Payment successful! Welcome to FUTBot.');
