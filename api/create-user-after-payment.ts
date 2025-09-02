@@ -69,9 +69,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const sessionId = initResponse.data.sessionid;
     console.log('✅ KeyAuth session initialized');
 
-    // Generate license key
-    const licenseKey = `FUTBOT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-    console.log('🎫 Generated license key:', licenseKey);
+    // Create license key using KeyAuth API first
+    console.log('🎫 Creating KeyAuth license...');
+    const licensePayload = new URLSearchParams();
+    licensePayload.append('type', 'addkey');
+    licensePayload.append('name', KEYAUTH_CONFIG.name);
+    licensePayload.append('ownerid', KEYAUTH_CONFIG.ownerid);
+    licensePayload.append('secret', KEYAUTH_CONFIG.secret);
+    licensePayload.append('sessionid', sessionId);
+    licensePayload.append('expiry', '30'); // 30 days
+    licensePayload.append('mask', 'XXXXXX-XXXXXX-XXXXXX');
+    licensePayload.append('amount', '1');
+    licensePayload.append('level', '1');
+    licensePayload.append('note', `Created for ${email}`);
+
+    const licenseResponse = await axios.post(KEYAUTH_CONFIG.url, licensePayload, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+
+    console.log('KeyAuth license response:', licenseResponse.data);
+
+    let licenseKey;
+    if (licenseResponse.data.success && licenseResponse.data.key) {
+      licenseKey = licenseResponse.data.key;
+      console.log('✅ KeyAuth license created:', licenseKey);
+    } else {
+      // Fallback: use generated key if API fails
+      licenseKey = `FUTBOT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      console.log('⚠️ License creation failed, using fallback:', licenseKey);
+    }
 
     // Register user in KeyAuth
     const registerPayload = new URLSearchParams();
@@ -81,7 +107,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     registerPayload.append('secret', KEYAUTH_CONFIG.secret);
     registerPayload.append('sessionid', sessionId);
     registerPayload.append('username', email); // Use email as username
-    registerPayload.append('pass', accessCode); // KeyAuth uses 'pass', not 'password'
+    registerPayload.append('password', accessCode);
     registerPayload.append('key', licenseKey);
     registerPayload.append('email', email);
 

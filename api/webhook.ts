@@ -342,7 +342,7 @@ async function registerKeyAuthUser(username: string, password: string, licenseKe
     registerPayload.append('secret', KEYAUTH_CONFIG.secret);
     registerPayload.append('sessionid', sessionId);
     registerPayload.append('username', username);
-    registerPayload.append('pass', password); // KeyAuth uses 'pass', not 'password'
+    registerPayload.append('password', password);
     registerPayload.append('key', licenseKey); // KeyAuth expects 'key', not 'license'
     registerPayload.append('email', email);
 
