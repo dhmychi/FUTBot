@@ -22,6 +22,7 @@ interface PaymentModalProps {
 export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: PaymentModalProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paypalError, setPaypalError] = useState('');
+  const [paypalReady, setPaypalReady] = useState(false);
 
   // Reset state when modal opens/closes
   useEffect(() => {
