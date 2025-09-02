@@ -253,7 +253,7 @@ async function createLicenseViaSeller(email: string, days: number): Promise<stri
   params.append('expiry', String(days));
   params.append('amount', '1');
   params.append('level', '1');
-  params.append('mask', 'XXXXXX-XXXXXX-XXXXXX');
+          params.append('mask', '******-******-******-******');
   params.append('format', 'JSON');
   params.append('note', `Created for ${email}`);
 
@@ -308,7 +308,7 @@ async function createKeyAuthLicense(username: string, email: string, duration: n
     licensePayload.append('secret', KEYAUTH_CONFIG.secret);
     licensePayload.append('sessionid', sessionId);
     licensePayload.append('expiry', duration.toString()); // days
-    licensePayload.append('mask', 'XXXXXX-XXXXXX-XXXXXX'); // license format
+    licensePayload.append('mask', '******-******-******-******'); // v1.3 license format
     licensePayload.append('amount', '1'); // number of licenses to create
     licensePayload.append('level', '1'); // subscription level
     licensePayload.append('note', `Created for ${username} (${email})`);

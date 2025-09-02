@@ -86,32 +86,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const params = new URLSearchParams();
         params.append('sellerkey', KEYAUTH_SELLER_KEY);
         params.append('type', 'add');
-        params.append('expiry', '30');
-        params.append('amount', '1');
-        params.append('level', '1');
-        params.append('mask', 'XXXXXX-XXXXXX-XXXXXX');
+        params.append('expiry', '30'); // days
+        params.append('amount', '1'); // number of keys to generate
+        params.append('level', '1'); // subscription level
+        params.append('mask', '******-******-******-******'); // Correct v1.3 format
         params.append('format', 'JSON');
-        params.append('note', `Created for ${email}`);
+        params.append('note', `License for ${email} - Payment: ${paymentId}`);
 
         const url = 'https://keyauth.win/api/seller/';
-        const resp = await axios.post(url, params, {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        console.log('🔄 Calling Seller API with params:', {
+          sellerkey: '***',
+          type: 'add',
+          expiry: '30',
+          amount: '1',
+          level: '1',
+          mask: '******-******-******-******',
+          format: 'JSON'
         });
-        console.log('Seller API add response:', resp.data);
+
+        const resp = await axios.post(url, params, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          timeout: 10000
+        });
+        
+        console.log('Seller API response:', resp.data);
+        
         if (!resp.data?.success) {
-          throw new Error(resp.data?.message || 'Seller API add failed');
+          const errorMsg = resp.data?.message || 'Seller API add failed';
+          console.error('❌ Seller API error:', errorMsg);
+          throw new Error(errorMsg);
         }
-        licenseKey = resp.data.key || resp.data.keys?.[0];
+        
+        // Handle different response formats
+        licenseKey = resp.data.key || resp.data.keys?.[0] || resp.data.license;
+        
+        if (!licenseKey) {
+          console.error('❌ No license key in Seller API response:', resp.data);
+          throw new Error('No license key returned from Seller API');
+        }
+        
         console.log('✅ License created via Seller API:', licenseKey);
-      } catch (sellerError) {
-        console.error('❌ Seller API failed, falling back to App API:', sellerError);
+      } catch (sellerError: any) {
+        console.error('❌ Seller API failed:', sellerError.message || sellerError);
         // Continue to App API fallback
       }
     } else {
       if (KEYAUTH_SELLER_KEY) {
         console.warn(`⚠️ Invalid seller key length: ${KEYAUTH_SELLER_KEY.length} chars (expected 32)`);
       }
-      console.log('🎫 No valid seller key, using App API...');
+      console.log('🎫 No valid seller key, using App API fallback...');
     }
 
     if (!licenseKey) {
@@ -123,7 +146,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       licensePayload.append('secret', KEYAUTH_CONFIG.secret);
       licensePayload.append('sessionid', sessionId);
       licensePayload.append('expiry', '30');
-      licensePayload.append('mask', 'XXXXXX-XXXXXX-XXXXXX');
+      licensePayload.append('mask', '******-******-******-******');
       licensePayload.append('amount', '1');
       licensePayload.append('level', '1');
       licensePayload.append('note', `Created for ${email}`);
