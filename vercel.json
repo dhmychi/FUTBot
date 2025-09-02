@@ -1,25 +1,5 @@
 {
   "version": 2,
-  "functions": {
-    "api/webhook.ts": {
-      "runtime": "nodejs18.x"
-    },
-    "api/test-webhook.ts": {
-      "runtime": "nodejs18.x"
-    },
-    "api/ping.ts": {
-      "runtime": "nodejs18.x"
-    },
-    "api/create-subscription.ts": {
-      "runtime": "nodejs18.x"
-    },
-    "api/paypal-subscription.ts": {
-      "runtime": "nodejs18.x"
-    },
-    "api/payment.ts": {
-      "runtime": "nodejs18.x"
-    }
-  },
   "rewrites": [
     {
       "source": "/((?!api/).*)",
