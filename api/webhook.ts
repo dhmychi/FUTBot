@@ -319,15 +319,16 @@ async function registerKeyAuthUser(username: string, password: string, licenseKe
       secret: KEYAUTH_CONFIG.secret,
       username,
       password,
-      license: licenseKey,
+      key: licenseKey, // KeyAuth expects 'key', not 'license'
       email
     });
 
     if (!registerResponse.data.success) {
-      console.error('KeyAuth register failed:', registerResponse.data);
-      return false;
+      console.error('❌ KeyAuth register failed:', registerResponse.data);
+      throw new Error(`KeyAuth registration failed: ${registerResponse.data.message || 'Unknown error'}`);
     }
 
+    console.log('✅ KeyAuth user registered successfully:', { username, email });
     return true;
   } catch (error) {
     console.error('KeyAuth user registration failed:', error);
@@ -481,12 +482,22 @@ async function handleSuccessfulPayment(event: any) {
     }
 
     // Create KeyAuth license
+    console.log('🎫 Creating KeyAuth license:', { username, email: userEmail, duration: subscriptionPlan.duration });
     const licenseKey = await createKeyAuthLicense(username, userEmail, subscriptionPlan.duration);
+    console.log('✅ KeyAuth license created:', licenseKey);
 
     // If customer provided access code, register a KeyAuth user using the license
     if (accessCode) {
-      const registered = await registerKeyAuthUser(username, accessCode, licenseKey, userEmail);
-      console.log('KeyAuth user registration:', registered ? 'success' : 'failed');
+      console.log('🔑 Attempting to register KeyAuth user:', { username, email: userEmail, accessCodeLength: accessCode.length });
+      try {
+        const registered = await registerKeyAuthUser(username, accessCode, licenseKey, userEmail);
+        console.log('✅ KeyAuth user registration:', registered ? 'SUCCESS' : 'FAILED');
+      } catch (error) {
+        console.error('❌ KeyAuth user registration error:', error);
+        // Continue processing even if user registration fails
+      }
+    } else {
+      console.log('ℹ️ No access code provided, skipping KeyAuth user registration');
     }
 
     // Create user subscription record in database
