@@ -1,14 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build@latest",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
   "functions": {
     "api/webhook.ts": {
       "runtime": "nodejs18.x"
