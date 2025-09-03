@@ -2,9 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import axios from 'axios';
 import { Resend } from 'resend';
 
-// This endpoint will be called directly from the frontend after successful PayPal payment
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -26,11 +24,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Plan duration mapping - CRITICAL FIX
+    // Plan duration mapping
     const PLAN_DURATIONS: Record<string, number> = {
-      '1_month': 30,      // 30 days
-      '3_months': 90,     // 90 days  
-      '12_months': 365    // 365 days
+      '1_month': 30,
+      '3_months': 90,
+      '12_months': 365
     };
 
     const subscriptionDuration = PLAN_DURATIONS[planId];
@@ -42,47 +40,81 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Calculate expiration date
-    const startDate = new Date();
-    const expirationDate = new Date(startDate.getTime() + (subscriptionDuration * 24 * 60 * 60 * 1000));
-
-    console.log('🎯 Creating KeyAuth user after payment:', { 
+    console.log('Creating KeyAuth user after payment:', { 
       email, 
       paymentId, 
       planId, 
-      amount,
-      subscriptionDuration,
-      startDate: startDate.toISOString(),
-      expirationDate: expirationDate.toISOString(),
-      accessCodeLength: accessCode.length 
+      subscriptionDuration 
     });
 
-    // KeyAuth configuration
+    // KeyAuth configuration - استخدم المتغيرات الصحيحة
     const KEYAUTH_CONFIG = {
-      name: process.env.KEYAUTH_NAME || process.env.KEYAUTH_APP_NAME || "futbot",
+      name: process.env.KEYAUTH_APP_NAME || "futbot",
       ownerid: process.env.KEYAUTH_OWNER_ID || "",
-      secret: process.env.KEYAUTH_SECRET || process.env.KEYAUTH_APP_SECRET || "",
-      version: process.env.KEYAUTH_VERSION || process.env.KEYAUTH_APP_VERSION || "1.0.0",
-      url: process.env.KEYAUTH_URL || "https://keyauth.win/api/1.2/"
+      secret: process.env.KEYAUTH_APP_SECRET || "",
+      version: process.env.KEYAUTH_APP_VERSION || "1.0.0",
+      url: "https://keyauth.win/api/1.2/"
     };
     
-    // KeyAuth Seller API for automatic license generation
     const KEYAUTH_SELLER_KEY = process.env.KEYAUTH_SELLER_KEY || '';
 
     // Validate KeyAuth config
-    if (!KEYAUTH_CONFIG.ownerid || !KEYAUTH_CONFIG.secret) {
-      throw new Error('KeyAuth configuration missing');
+    if (!KEYAUTH_CONFIG.ownerid || !KEYAUTH_CONFIG.secret || !KEYAUTH_SELLER_KEY) {
+      return res.status(500).json({
+        error: 'KeyAuth configuration incomplete',
+        missing: {
+          ownerid: !KEYAUTH_CONFIG.ownerid,
+          secret: !KEYAUTH_CONFIG.secret,
+          sellerKey: !KEYAUTH_SELLER_KEY
+        }
+      });
     }
 
-    // Log configuration for debugging
-    console.log('KeyAuth Config Debug:', {
+    console.log('KeyAuth Config:', {
       name: KEYAUTH_CONFIG.name,
-      ownerid: KEYAUTH_CONFIG.ownerid ? '***' : 'MISSING',
-      secret: KEYAUTH_CONFIG.secret ? '***' : 'MISSING',
-      sellerKey: KEYAUTH_SELLER_KEY ? `***${KEYAUTH_SELLER_KEY.length}chars***` : 'MISSING'
+      ownerid: KEYAUTH_CONFIG.ownerid ? 'SET' : 'MISSING',
+      secret: KEYAUTH_CONFIG.secret ? 'SET' : 'MISSING',
+      sellerKey: KEYAUTH_SELLER_KEY ? 'SET' : 'MISSING'
     });
 
-    // Initialize KeyAuth session
+    // الخطوة 1: إنشاء مفتاح license حقيقي عبر Seller API
+    console.log('Creating real license key via Seller API...');
+    
+    const sellerParams = new URLSearchParams();
+    sellerParams.append('sellerkey', KEYAUTH_SELLER_KEY);
+    sellerParams.append('type', 'add');
+    sellerParams.append('expiry', subscriptionDuration.toString()); // عدد الأيام
+    sellerParams.append('amount', '1'); // عدد المفاتيح
+    sellerParams.append('level', '1'); // مستوى الاشتراك
+    sellerParams.append('mask', 'XXXX-XXXX-XXXX-XXXX'); // شكل المفتاح
+    sellerParams.append('format', 'JSON');
+    sellerParams.append('note', `Created for ${email} - Plan: ${planId}`);
+
+    const sellerResponse = await axios.post('https://keyauth.win/api/seller/', sellerParams, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+
+    console.log('Seller API Response:', sellerResponse.data);
+
+    if (!sellerResponse.data.success) {
+      console.error('Seller API failed:', sellerResponse.data);
+      return res.status(500).json({
+        error: 'Failed to create license key',
+        details: sellerResponse.data.message || 'Seller API failed'
+      });
+    }
+
+    const licenseKey = sellerResponse.data.key || sellerResponse.data.keys?.[0];
+    if (!licenseKey) {
+      return res.status(500).json({
+        error: 'No license key returned from Seller API',
+        response: sellerResponse.data
+      });
+    }
+
+    console.log('License key created successfully:', licenseKey);
+
+    // الخطوة 2: Initialize KeyAuth session
     const initPayload = new URLSearchParams();
     initPayload.append('type', 'init');
     initPayload.append('name', KEYAUTH_CONFIG.name);
@@ -90,60 +122,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     initPayload.append('secret', KEYAUTH_CONFIG.secret);
     initPayload.append('version', KEYAUTH_CONFIG.version);
 
-    console.log('🔄 Initializing KeyAuth session...');
+    console.log('Initializing KeyAuth session...');
     const initResponse = await axios.post(KEYAUTH_CONFIG.url, initPayload, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
 
     if (!initResponse.data.success) {
       console.error('KeyAuth init failed:', initResponse.data);
-      throw new Error(`KeyAuth initialization failed: ${initResponse.data.message}`);
+      return res.status(500).json({
+        error: 'KeyAuth initialization failed',
+        details: initResponse.data.message
+      });
     }
 
     const sessionId = initResponse.data.sessionid;
-    console.log('✅ KeyAuth session initialized');
+    console.log('KeyAuth session initialized');
 
-    // BULLETPROOF LICENSE KEY SYSTEM - Always works, no failures!
-    let licenseKey: string;
-    
-    // Generate a guaranteed working license key
-    const timestamp = Date.now();
-    const randomPart = Math.random().toString(36).substr(2, 9).toUpperCase();
-    const planCode = planId.replace('_', '').substr(0, 3).toUpperCase();
-    
-    licenseKey = `FUTBOT-${planCode}-${timestamp}-${randomPart}`;
-    console.log('✅ Generated guaranteed working license key:', `***${licenseKey.slice(-4)}`);
-    console.log('💡 This key format is guaranteed to work with KeyAuth registration');
-    
-    // Note: You can later replace these generated keys with real ones in KeyAuth Dashboard
-    // But for now, this ensures 100% success rate for account creation
-
-    // Register user in KeyAuth
+    // الخطوة 3: تسجيل المستخدم في KeyAuth باستخدام المفتاح الحقيقي
     const registerPayload = new URLSearchParams();
     registerPayload.append('type', 'register');
     registerPayload.append('name', KEYAUTH_CONFIG.name);
     registerPayload.append('ownerid', KEYAUTH_CONFIG.ownerid);
     registerPayload.append('secret', KEYAUTH_CONFIG.secret);
     registerPayload.append('sessionid', sessionId);
-    registerPayload.append('username', email); // Use email as username
-    registerPayload.append('pass', accessCode);
-    registerPayload.append('key', licenseKey);
+    registerPayload.append('username', email); // استخدم الإيميل كاسم مستخدم
+    registerPayload.append('pass', accessCode); // الرمز الذي اختاره العميل
+    registerPayload.append('key', licenseKey); // المفتاح الحقيقي
     registerPayload.append('email', email);
-    registerPayload.append('expire', expirationDate.toISOString()); // Add expiration date
 
-    console.log('🔄 Registering KeyAuth user with payload:', {
-      type: 'register',
-      name: KEYAUTH_CONFIG.name,
-      ownerid: KEYAUTH_CONFIG.ownerid ? '***' : 'MISSING',
-      secret: KEYAUTH_CONFIG.secret ? '***' : 'MISSING',
-      sessionid: sessionId ? '***' : 'MISSING',
-      username: email,
-      password: accessCode ? `***${accessCode.length}chars***` : 'MISSING',
-      key: licenseKey ? '***' : 'MISSING',
-      email: email,
-      expire: expirationDate.toISOString()
-    });
-    
+    console.log('Registering KeyAuth user...');
     const registerResponse = await axios.post(KEYAUTH_CONFIG.url, registerPayload, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
@@ -152,12 +159,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!registerResponse.data.success) {
       console.error('KeyAuth registration failed:', registerResponse.data);
-      throw new Error(`KeyAuth registration failed: ${registerResponse.data.message || 'Unknown error'}`);
+      return res.status(500).json({
+        error: 'KeyAuth user registration failed',
+        details: registerResponse.data.message || 'Registration failed'
+      });
     }
 
-    console.log('✅ KeyAuth user registered successfully!');
+    console.log('KeyAuth user registered successfully!');
 
-    // Send welcome email
+    // الخطوة 4: إرسال إيميل ترحيب مع بيانات الدخول
     const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
     const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@resend.dev';
     
@@ -165,41 +175,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       try {
         const resend = new Resend(RESEND_API_KEY);
         
+        const startDate = new Date();
+        const expirationDate = new Date(startDate.getTime() + (subscriptionDuration * 24 * 60 * 60 * 1000));
+        
+        const planNames: Record<string, string> = {
+          '1_month': 'شهر واحد',
+          '3_months': '3 أشهر', 
+          '12_months': 'سنة كاملة'
+        };
+        
         const emailResult = await resend.emails.send({
           from: FROM_EMAIL,
           to: email,
-          subject: '🎉 Welcome to FUTBot - Your Account is Ready!',
+          subject: '🎉 مرحباً بك في FUTBot - حسابك جاهز!',
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h2 style="color: #4169E1;">Welcome to FUTBot! 🚀</h2>
-              <p>Your subscription has been activated successfully!</p>
+              <h2 style="color: #4169E1;">مرحباً بك في FUTBot! 🚀</h2>
+              <p>تم تفعيل اشتراكك بنجاح!</p>
               
               <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin: 16px 0;">
-                <h3>Your Login Credentials</h3>
-                <p><strong>Username:</strong> ${email}</p>
-                <p><strong>Password:</strong> ${accessCode}</p>
-                <p><strong>License Key:</strong> ${licenseKey}</p>
+                <h3>بيانات الدخول الخاصة بك</h3>
+                <p><strong>اسم المستخدم:</strong> ${email}</p>
+                <p><strong>كلمة المرور:</strong> ${accessCode}</p>
+                <p><strong>مفتاح الترخيص:</strong> ${licenseKey}</p>
+                <p><strong>نوع الاشتراك:</strong> ${planNames[planId] || planId}</p>
+                <p><strong>تاريخ الانتهاء:</strong> ${expirationDate.toLocaleDateString('ar-SA')}</p>
               </div>
               
-              <h3>Next Steps:</h3>
+              <h3>الخطوات التالية:</h3>
               <ol>
-                <li>Install the FUTBot Chrome Extension</li>
-                <li>Log in using your email and access code</li>
-                <li>Start trading and earning!</li>
+                <li>تحميل إضافة FUTBot للمتصفح</li>
+                <li>تسجيل الدخول باستخدام الإيميل وكلمة المرور</li>
+                <li>البدء في التداول والربح!</li>
               </ol>
               
-              <p>Need help? Contact us at support@futbot.club</p>
-              <p>Happy Trading!<br/>FUTBot Team</p>
+              <p>تحتاج مساعدة؟ راسلنا على support@futbot.club</p>
+              <p>تداول سعيد!<br/>فريق FUTBot</p>
             </div>
           `
         });
         
-        console.log('✅ Welcome email sent:', emailResult);
+        console.log('Welcome email sent:', emailResult);
       } catch (emailError) {
-        console.error('❌ Failed to send welcome email:', emailError);
+        console.error('Failed to send welcome email:', emailError);
       }
     }
 
+    // إرجاع النتيجة الناجحة
     res.status(200).json({ 
       success: true, 
       message: 'KeyAuth user created successfully',
@@ -210,13 +232,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         paymentId: paymentId,
         planId: planId,
         subscriptionDuration: subscriptionDuration,
-        startDate: startDate.toISOString(),
-        expirationDate: expirationDate.toISOString()
+        expirationDate: new Date(Date.now() + (subscriptionDuration * 24 * 60 * 60 * 1000)).toISOString()
       }
     });
 
   } catch (error) {
-    console.error('❌ KeyAuth user creation failed:', error);
+    console.error('KeyAuth user creation failed:', error);
     res.status(500).json({ 
       error: 'Failed to create KeyAuth user',
       details: error instanceof Error ? error.message : String(error)
