@@ -20,17 +20,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { email, accessCode, paymentId, planId, amount } = req.body;
 
-    if (!email || !accessCode || !paymentId) {
+    if (!email || !accessCode || !paymentId || !planId) {
       return res.status(400).json({ 
-        error: 'Missing required fields: email, accessCode, paymentId' 
+        error: 'Missing required fields: email, accessCode, paymentId, planId' 
       });
     }
+
+    // Plan duration mapping - CRITICAL FIX
+    const PLAN_DURATIONS: Record<string, number> = {
+      '1_month': 30,      // 30 days
+      '3_months': 90,     // 90 days  
+      '12_months': 365    // 365 days
+    };
+
+    const subscriptionDuration = PLAN_DURATIONS[planId];
+    if (!subscriptionDuration) {
+      return res.status(400).json({ 
+        error: 'Invalid plan ID', 
+        received: planId,
+        validPlans: Object.keys(PLAN_DURATIONS)
+      });
+    }
+
+    // Calculate expiration date
+    const startDate = new Date();
+    const expirationDate = new Date(startDate.getTime() + (subscriptionDuration * 24 * 60 * 60 * 1000));
 
     console.log('🎯 Creating KeyAuth user after payment:', { 
       email, 
       paymentId, 
       planId, 
       amount,
+      subscriptionDuration,
+      startDate: startDate.toISOString(),
+      expirationDate: expirationDate.toISOString(),
       accessCodeLength: accessCode.length 
     });
 
@@ -89,10 +112,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const randomIndex = Math.floor(Math.random() * LICENSE_KEYS_POOL.length);
       licenseKey = LICENSE_KEYS_POOL[randomIndex];
       console.log('✅ Using license key from pool:', `***${licenseKey.slice(-4)}`);
+      
+      // Remove used key from pool (optional - for tracking)
+      console.log(`📊 License pool status: ${LICENSE_KEYS_POOL.length - 1} keys remaining`);
     } else {
       // Use predefined default key or generate fallback
       licenseKey = process.env.KEYAUTH_DEFAULT_LICENSE || `FUTBOT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
       console.log('⚠️ No license keys in pool, using default/fallback:', `***${licenseKey.slice(-4)}`);
+      console.log('💡 To use pre-created keys, add KEYAUTH_LICENSE_KEYS to Vercel environment variables');
     }
 
     // Register user in KeyAuth
@@ -106,6 +133,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     registerPayload.append('pass', accessCode);
     registerPayload.append('key', licenseKey);
     registerPayload.append('email', email);
+    registerPayload.append('expire', expirationDate.toISOString()); // Add expiration date
 
     console.log('🔄 Registering KeyAuth user with payload:', {
       type: 'register',
@@ -116,7 +144,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       username: email,
       password: accessCode ? `***${accessCode.length}chars***` : 'MISSING',
       key: licenseKey ? '***' : 'MISSING',
-      email: email
+      email: email,
+      expire: expirationDate.toISOString()
     });
     
     const registerResponse = await axios.post(KEYAUTH_CONFIG.url, registerPayload, {
@@ -182,7 +211,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         email: email,
         username: email,
         licenseKey: licenseKey,
-        paymentId: paymentId
+        paymentId: paymentId,
+        planId: planId,
+        subscriptionDuration: subscriptionDuration,
+        startDate: startDate.toISOString(),
+        expirationDate: expirationDate.toISOString()
       }
     });
 

@@ -56,11 +56,11 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@resend.dev';
 const resendClient = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 
-// Subscription plans mapping
-const SUBSCRIPTION_PLANS = {
-  '15.00': { duration: 30, plan: '1-month' },      // 1 Month - $15
-  '24.99': { duration: 90, plan: '3-months' },     // 3 Months - $24.99
-  '49.99': { duration: 365, plan: '12-months' }    // 12 Months - $49.99
+// Subscription plans mapping - FIXED to use plan IDs instead of amounts
+const SUBSCRIPTION_PLANS: Record<string, { duration: number, plan: string }> = {
+  '1_month': { duration: 30, plan: '1-month' },      // 1 Month - 30 days
+  '3_months': { duration: 90, plan: '3-months' },    // 3 Months - 90 days
+  '12_months': { duration: 365, plan: '12-months' }  // 12 Months - 365 days
 };
 
 // PayPal API helper functions
@@ -532,6 +532,7 @@ async function handleSuccessfulPayment(event: any) {
     // Use email as username directly - much simpler and clearer for users
     let username = payerEmail;
     let accessCode: string | undefined = undefined;
+    let planId: string | undefined = undefined;
     
     try {
       const customId = event.resource?.purchase_units?.[0]?.custom_id;
@@ -544,15 +545,18 @@ async function handleSuccessfulPayment(event: any) {
         if (userData.accessCode) {
           accessCode = String(userData.accessCode);
         }
-        if (userEmail || accessCode) {
-          console.log('Using custom user data from PayPal order:', { email: userEmail, username, accessCodePresent: !!accessCode });
+        if (userData.planId) {
+          planId = String(userData.planId);
+        }
+        if (userEmail || accessCode || planId) {
+          console.log('Using custom user data from PayPal order:', { email: userEmail, username, accessCodePresent: !!accessCode, planId });
         }
       }
     } catch (e) {
       console.log('No valid custom user data found, using payer email as username');
     }
     
-    console.log('Processing payment:', { amount, currency, userEmail, paymentId, username });
+    console.log('Processing payment:', { amount, currency, userEmail, paymentId, username, planId });
 
     // Validate currency
     if (currency !== 'USD') {
@@ -560,12 +564,17 @@ async function handleSuccessfulPayment(event: any) {
       return; // don't fail the webhook, just ignore
     }
 
-    // Find matching subscription plan
-    const amountStr = String(amount); // Convert to string to match object keys
-    const subscriptionPlan = SUBSCRIPTION_PLANS[amountStr as keyof typeof SUBSCRIPTION_PLANS];
+    // Find matching subscription plan using planId from custom_id
+    if (!planId) {
+      console.warn('No planId found in custom_id, cannot determine subscription duration');
+      return;
+    }
+
+    const subscriptionPlan = SUBSCRIPTION_PLANS[planId];
     if (!subscriptionPlan) {
-      console.warn(`Unknown subscription amount (${amountStr}), ignoring event.`);
-      return; // ignore unrecognized simulator/test amounts
+      console.warn(`Unknown subscription plan (${planId}), ignoring event.`);
+      console.log('Valid plans:', Object.keys(SUBSCRIPTION_PLANS));
+      return; // ignore unrecognized plan IDs
     }
 
     // Get license key from pre-created pool or use fallback
