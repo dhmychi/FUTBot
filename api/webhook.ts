@@ -2,308 +2,234 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import axios from 'axios';
 import { Resend } from 'resend';
 
-// PayPal webhook configuration - Use environment variables
-const PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID || '';
-const PAYPAL_CLIENT_ID = process.env.VITE_PAYPAL_CLIENT_ID || process.env.PAYPAL_CLIENT_ID || '';
-const PAYPAL_CLIENT_SECRET = process.env.VITE_PAYPAL_CLIENT_SECRET || process.env.PAYPAL_CLIENT_SECRET || '';
-const PAYPAL_SANDBOX = process.env.PAYPAL_ENVIRONMENT === 'sandbox'; // Use environment variable
-
-// Helper to safely read header values (handles string | string[])
-function getHeader(headers: any, name: string): string | undefined {
-  if (!headers) return undefined;
-  const key = name.toLowerCase();
-  const val = headers[key] ?? headers[name] ?? headers[name.toLowerCase()];
-  if (Array.isArray(val)) return val[0];
-  if (typeof val === 'string') return val;
-  return undefined;
-}
-
-// KeyAuth configuration - Use environment variables
-const KEYAUTH_CONFIG = {
-  name: process.env.KEYAUTH_NAME || process.env.KEYAUTH_APP_NAME || "futbot",
-  ownerid: process.env.KEYAUTH_OWNER_ID || "",
-  secret: process.env.KEYAUTH_SECRET || process.env.KEYAUTH_APP_SECRET || "",
-  version: process.env.KEYAUTH_VERSION || process.env.KEYAUTH_APP_VERSION || "1.0.0",
-  url: process.env.KEYAUTH_URL || "https://keyauth.win/api/1.2/"
-};
-
-// بدلاً من pool ثابت، سنستخدم Seller API لإنشاء مفتاح جديد لكل عميل
-const KEYAUTH_SELLER_KEY = process.env.KEYAUTH_SELLER_KEY || '';
-
-// إنشاء مفتاح جديد لكل عميل
-async function createLicenseKey() {
-  if (KEYAUTH_SELLER_KEY && KEYAUTH_SELLER_KEY.length === 32) {
-    // إنشاء مفتاح جديد عبر Seller API
-    const params = new URLSearchParams();
-    params.append('sellerkey', KEYAUTH_SELLER_KEY);
-    params.append('type', 'add');
-    params.append('expiry', '30'); // 30 يوم
-    params.append('amount', '1');
-    params.append('level', '1');
-    params.append('mask', '******-******-******-******');
-    params.append('format', 'JSON');
-    
-    const response = await axios.post('https://keyauth.win/api/seller/', params);
-    return response.data.key;
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
-  
-  // fallback إذا لم يكن Seller Key متوفر
-  return `FUTBOT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-}
 
-// Resend configuration
-const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
-const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@resend.dev';
-const resendClient = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
-
-// Subscription plans mapping - FIXED to use plan IDs instead of amounts
-const SUBSCRIPTION_PLANS: Record<string, { duration: number, plan: string }> = {
-  '1_month': { duration: 30, plan: '1-month' },      // 1 Month - 30 days
-  '3_months': { duration: 90, plan: '3-months' },    // 3 Months - 90 days
-  '12_months': { duration: 365, plan: '12-months' }  // 12 Months - 365 days
-};
-
-// PayPal API helper functions
-async function getPayPalAccessToken(): Promise<string | null> {
-  const baseURL = PAYPAL_SANDBOX 
-    ? 'https://api.sandbox.paypal.com' 
-    : 'https://api.paypal.com';
-
-  console.log(`🔑 Requesting PayPal access token from: ${baseURL}`);
-  
-  if (!PAYPAL_CLIENT_ID || !PAYPAL_CLIENT_SECRET) {
-    console.error('❌ Missing PayPal API credentials. Please check your environment variables.');
-    console.error(`CLIENT_ID: ${PAYPAL_CLIENT_ID ? '***' : 'MISSING'}`);
-    console.error(`CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET ? '***' : 'MISSING'}`);
-    return null;
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
-  
+
   try {
-    const startTime = Date.now();
-    const response = await axios.post(
-      `${baseURL}/v1/oauth2/token`,
-      'grant_type=client_credentials',
-      {
-        headers: {
-          'Accept': 'application/json',
-          'Accept-Language': 'en_US',
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'PayPal-Request-Id': `token-${Date.now()}`
-        },
-        auth: {
-          username: PAYPAL_CLIENT_ID,
-          password: PAYPAL_CLIENT_SECRET
-        },
-        timeout: 10000 // 10 second timeout
-      }
-    );
+    const { event_type, resource, custom_id } = req.body;
 
-    const responseTime = Date.now() - startTime;
-    
-    if (!response.data.access_token) {
-      console.error('❌ No access token in PayPal response:', response.data);
-      return null;
+    console.log('📥 PayPal Webhook received:', { event_type, custom_id });
+
+    // Only process payment captures
+    if (event_type !== 'PAYMENT.CAPTURE.COMPLETED') {
+      console.log('⏭️ Skipping non-payment event:', event_type);
+      return res.status(200).json({ message: 'Event ignored' });
     }
 
-    console.log(`✅ Successfully obtained PayPal access token (${responseTime}ms)`);
-    console.log(`   Token expires in: ${response.data.expires_in || 'unknown'} seconds`);
-    
-    return response.data.access_token;
-    
-  } catch (error: any) {
-    const errorDetails = {
-      message: error.message,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      config: {
-        url: error.config?.url,
-        method: error.config?.method,
-        headers: {
-          ...error.config?.headers,
-          Authorization: '***REDACTED***'
-        }
-      }
-    };
-    
-    console.error('❌ Failed to get PayPal access token:', JSON.stringify(errorDetails, null, 2));
-    
-    if (error.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
-      console.error('PayPal API Error Response:', {
-        status: error.response.status,
-        headers: error.response.headers,
-        data: error.response.data
-      });
-      
-      if (error.response.status === 401) {
-        console.error('❌ Authentication failed. Please verify your PayPal API credentials.');
-        console.error('   Make sure you are using the correct client ID and secret for the', 
-          PAYPAL_SANDBOX ? 'SANDBOX' : 'PRODUCTION', 'environment');
-      }
-    } else if (error.request) {
-      // The request was made but no response was received
-      console.error('No response received from PayPal API. Check your network connection.');
-    } else {
-      // Something happened in setting up the request that triggered an Error
-      console.error('Request setup error:', error.message);
-    }
-    
-    return null;
-  }
-}
+    // Extract payment details
+    const paymentId = resource.id;
+    const amount = resource.amount.value;
+    const currency = resource.amount.currency_code;
+    const status = resource.status;
 
-async function verifyPayPalWebhook(headers: any, body: string): Promise<boolean> {
-  console.log('🔍 Starting webhook verification...');
-  
-  if (!PAYPAL_WEBHOOK_ID) {
-    console.error('❌ No PAYPAL_WEBHOOK_ID configured in environment variables');
-    return false;
-  }
+    console.log('💰 Payment details:', { paymentId, amount, currency, status });
 
-  const baseURL = PAYPAL_SANDBOX 
-    ? 'https://api.sandbox.paypal.com' 
-    : 'https://api.paypal.com';
-  
-  console.log(`🌐 Using PayPal ${PAYPAL_SANDBOX ? 'Sandbox' : 'Production'} API: ${baseURL}`);
-  
-  try {
-    console.log('🔑 Getting PayPal access token...');
-    const accessToken = await getPayPalAccessToken();
-    
-    if (!accessToken) {
-      console.error('❌ Failed to get PayPal access token');
-      return false;
-    }
-    
-    const auth_algo = getHeader(headers, 'paypal-auth-algo');
-    const cert_url = getHeader(headers, 'paypal-cert-url');
-    const transmission_id = getHeader(headers, 'paypal-transmission-id');
-    const transmission_sig = getHeader(headers, 'paypal-transmission-sig');
-    const transmission_time = getHeader(headers, 'paypal-transmission-time');
-
-    // Log all headers for debugging
-    console.log('📋 Webhook Headers:', {
-      'paypal-auth-algo': auth_algo ? '***' : 'MISSING',
-      'paypal-cert-url': cert_url ? '***' : 'MISSING',
-      'paypal-transmission-id': transmission_id ? '***' : 'MISSING',
-      'paypal-transmission-sig': transmission_sig ? '***' : 'MISSING',
-      'paypal-transmission-time': transmission_time || 'MISSING'
-    });
-
-    if (!auth_algo || !transmission_id || !transmission_sig || !transmission_time) {
-      console.error('❌ Missing required PayPal webhook headers');
-      return false;
+    // Parse custom_id to get plan and user details
+    if (!custom_id) {
+      console.error('❌ No custom_id in payment');
+      return res.status(400).json({ error: 'Missing custom_id' });
     }
 
-    if (!cert_url) {
-      console.warn('⚠️ Missing paypal-cert-url header - this may cause verification to fail');
-    }
+    let planId: string;
+    let email: string;
+    let accessCode: string;
 
-    // Parse the webhook event for logging (without sensitive data)
-    let webhookEvent;
     try {
-      webhookEvent = JSON.parse(body);
-      console.log('📨 Webhook Event Type:', webhookEvent.event_type || 'UNKNOWN');
-    } catch (e) {
-      console.error('❌ Failed to parse webhook body as JSON');
-      return false;
+      // custom_id format: "planId:email:accessCode"
+      const parts = custom_id.split(':');
+      if (parts.length !== 3) {
+        throw new Error('Invalid custom_id format');
+      }
+      
+      [planId, email, accessCode] = parts;
+      
+      console.log('📋 Parsed custom_id:', { planId, email, accessCode: '***' + accessCode.slice(-3) });
+    } catch (parseError) {
+      console.error('❌ Failed to parse custom_id:', parseError);
+      return res.status(400).json({ error: 'Invalid custom_id format' });
     }
 
-    const verificationData = {
-      auth_algo,
-      cert_url,
-      transmission_id,
-      transmission_sig,
-      transmission_time,
-      webhook_id: PAYPAL_WEBHOOK_ID,
-      webhook_event: webhookEvent
+    // Plan configuration
+    const PLANS = {
+      '1_month': { name: 'شهر واحد', duration: 30, price: 15.00 },
+      '3_months': { name: '3 أشهر', duration: 90, price: 24.99 },
+      '12_months': { name: 'سنة كاملة', duration: 365, price: 49.99 }
     };
 
-    console.log('🔍 Verifying webhook signature with PayPal...');
-    const response = await axios.post(
-      `${baseURL}/v1/notifications/verify-webhook-signature`,
-      verificationData,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-          'PayPal-Request-Id': `webhook-verification-${Date.now()}`
-        },
-        timeout: 10000 // 10 second timeout
-      }
-    );
+    const plan = PLANS[planId as keyof typeof PLANS];
+    if (!plan) {
+      console.error('❌ Invalid plan ID:', planId);
+      return res.status(400).json({ 
+        error: 'Invalid plan ID', 
+        validPlans: Object.keys(PLANS)
+      });
+    }
 
-    const verificationStatus = response.data.verification_status;
-    console.log('✅ Webhook verification result:', {
-      status: verificationStatus,
-      statusCode: response.status,
-      data: response.data
+    // Verify payment amount matches plan
+    if (parseFloat(amount) !== plan.price) {
+      console.error('❌ Payment amount mismatch:', { expected: plan.price, received: amount });
+      return res.status(400).json({ 
+        error: 'Payment amount mismatch',
+        expected: plan.price,
+        received: amount
+      });
+    }
+
+    console.log('✅ Payment verified:', { 
+      planId, 
+      planName: plan.name,
+      duration: plan.duration,
+      price: plan.price,
+      amount,
+      currency
     });
 
-    return verificationStatus === 'SUCCESS';
+    // KeyAuth configuration
+    const KEYAUTH_CONFIG = {
+      name: process.env.KEYAUTH_APP_NAME || "futbot",
+      ownerid: process.env.KEYAUTH_OWNER_ID || "j5oBWrvrnm",
+      secret: process.env.KEYAUTH_APP_SECRET || "71d7d7717aea788ae29b063fab062482e707ae9826c1e425acffaa7cd816dfc5",
+      version: process.env.KEYAUTH_APP_VERSION || "1.0",
+      url: "https://keyauth.win/api/1.2/"
+    };
     
-  } catch (error: any) {
-    console.error('❌ Webhook verification failed:', {
-      error: error.message,
-      response: error.response?.data || 'No response data',
-      status: error.response?.status,
-      config: {
-        url: error.config?.url,
-        method: error.config?.method,
-        headers: {
-          ...error.config?.headers,
-          Authorization: error.config?.headers?.Authorization ? '***' : 'MISSING'
+    const KEYAUTH_SELLER_KEY = process.env.KEYAUTH_SELLER_KEY || 'e5bb8c336379263e3e19f5939357fac6';
+
+    // Validate KeyAuth config
+    if (!KEYAUTH_CONFIG.ownerid || !KEYAUTH_CONFIG.secret || !KEYAUTH_SELLER_KEY) {
+      console.error('❌ KeyAuth configuration incomplete');
+      return res.status(500).json({
+        error: 'KeyAuth configuration incomplete',
+        missing: {
+          ownerid: !KEYAUTH_CONFIG.ownerid,
+          secret: !KEYAUTH_CONFIG.secret,
+          sellerKey: !KEYAUTH_SELLER_KEY
         }
-      }
+      });
+    }
+
+    // Validate Seller Key length
+    if (KEYAUTH_SELLER_KEY.length !== 32) {
+      console.error('❌ Invalid Seller Key length:', KEYAUTH_SELLER_KEY.length);
+      return res.status(500).json({
+        error: 'Invalid Seller Key length',
+        details: `Seller key must be exactly 32 characters long, got ${KEYAUTH_SELLER_KEY.length}`
+      });
+    }
+
+    console.log('✅ KeyAuth Config validated');
+
+    // Step 1: Create license key via Seller API
+    console.log('🔑 Creating license key via Seller API...');
+    
+    const sellerParams = new URLSearchParams();
+    sellerParams.append('sellerkey', KEYAUTH_SELLER_KEY);
+    sellerParams.append('type', 'add');
+    sellerParams.append('expiry', plan.duration.toString());
+    sellerParams.append('amount', '1');
+    sellerParams.append('level', '1');
+    sellerParams.append('mask', '******-******-******-******');
+    sellerParams.append('format', 'JSON');
+    sellerParams.append('note', `Created for ${email} - Plan: ${plan.name} - Payment: ${paymentId}`);
+
+    const sellerResponse = await axios.post('https://keyauth.win/api/seller/', sellerParams, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
-    return false;
-  }
-}
 
-// KeyAuth API helper functions
-async function createLicenseViaSeller(email: string, days: number): Promise<string> {
-  if (!KEYAUTH_SELLER_KEY) {
-    throw new Error('KEYAUTH_SELLER_KEY not set');
-  }
+    console.log('📥 Seller API Response:', sellerResponse.data);
 
-  const params = new URLSearchParams();
-  params.append('sellerkey', KEYAUTH_SELLER_KEY);
-  params.append('type', 'add');
-  params.append('expiry', String(days));
-  params.append('amount', '1');
-  params.append('level', '1');
-          params.append('mask', '******-******-******-******');
-  params.append('format', 'JSON');
-  params.append('note', `Created for ${email}`);
+    let licenseKey: string;
 
-  const url = 'https://keyauth.win/api/seller/';
-  const resp = await axios.post(url, params, {
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-  });
-
-  console.log('Seller API add response:', resp.data);
-
-  if (!resp.data?.success) {
-    throw new Error(resp.data?.message || 'Seller API add failed');
-  }
-
-  return resp.data.key || resp.data.keys?.[0];
-}
-async function createKeyAuthLicense(username: string, email: string, duration: number): Promise<string> {
-  try {
-    // Prefer Seller API if available (more reliable for license creation)
-    if (KEYAUTH_SELLER_KEY) {
+    if (!sellerResponse.data.success) {
+      console.error('❌ Seller API failed:', sellerResponse.data);
+      
+      // Fallback: Try App API addkey
+      console.log('🔄 Trying App API addkey as fallback...');
+      
       try {
-        const key = await createLicenseViaSeller(email, duration);
-        return key;
-      } catch (sellerErr) {
-        console.error('Seller API license creation failed, falling back to App API:', sellerErr);
+        // First initialize KeyAuth session
+        const initPayload = new URLSearchParams();
+        initPayload.append('type', 'init');
+        initPayload.append('name', KEYAUTH_CONFIG.name);
+        initPayload.append('ownerid', KEYAUTH_CONFIG.ownerid);
+        initPayload.append('secret', KEYAUTH_CONFIG.secret);
+        initPayload.append('version', KEYAUTH_CONFIG.version);
+
+        console.log('🔄 Initializing KeyAuth session for App API...');
+        const initResponse = await axios.post(KEYAUTH_CONFIG.url, initPayload, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+
+        if (!initResponse.data.success) {
+          throw new Error(`KeyAuth init failed: ${initResponse.data.message}`);
+        }
+
+        const sessionId = initResponse.data.sessionid;
+        console.log('✅ KeyAuth session initialized for App API');
+
+        // Now try to create license key
+        const appParams = new URLSearchParams();
+        appParams.append('type', 'addkey');
+        appParams.append('name', KEYAUTH_CONFIG.name);
+        appParams.append('ownerid', KEYAUTH_CONFIG.ownerid);
+        appParams.append('secret', KEYAUTH_CONFIG.secret);
+        appParams.append('sessionid', sessionId);
+        appParams.append('expiry', plan.duration.toString());
+        appParams.append('mask', '******-******-******-******');
+        appParams.append('amount', '1');
+        appParams.append('level', '1');
+        appParams.append('format', 'JSON');
+        
+        const appResponse = await axios.post(KEYAUTH_CONFIG.url, appParams, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+        
+        console.log('📥 App API Response:', appResponse.data);
+        
+        if (appResponse.data.success) {
+          const appLicenseKey = appResponse.data.key || appResponse.data.keys?.[0];
+          if (appLicenseKey) {
+            console.log('✅ App API license key created successfully:', appLicenseKey);
+            licenseKey = appLicenseKey;
+          } else {
+            throw new Error('No license key from App API');
+          }
+        } else {
+          throw new Error(appResponse.data.message || 'App API failed');
+        }
+      } catch (appError) {
+        console.error('❌ App API fallback also failed:', appError);
+        return res.status(500).json({
+          error: 'Failed to create license key via both Seller API and App API',
+          sellerError: sellerResponse.data.message,
+          appError: appError instanceof Error ? appError.message : String(appError)
+        });
       }
+    } else {
+      // Seller API succeeded
+      licenseKey = sellerResponse.data.key || sellerResponse.data.keys?.[0];
+      if (!licenseKey) {
+        console.error('❌ No license key returned from Seller API');
+        return res.status(500).json({
+          error: 'No license key returned from Seller API',
+          response: sellerResponse.data
+        });
+      }
+      console.log('✅ License key created successfully via Seller API:', licenseKey);
     }
 
-    // Initialize KeyAuth session
+    // Step 2: Initialize KeyAuth session
     const initPayload = new URLSearchParams();
     initPayload.append('type', 'init');
     initPayload.append('name', KEYAUTH_CONFIG.name);
@@ -311,478 +237,130 @@ async function createKeyAuthLicense(username: string, email: string, duration: n
     initPayload.append('secret', KEYAUTH_CONFIG.secret);
     initPayload.append('version', KEYAUTH_CONFIG.version);
 
+    console.log('🔄 Initializing KeyAuth session...');
     const initResponse = await axios.post(KEYAUTH_CONFIG.url, initPayload, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
 
     if (!initResponse.data.success) {
-      throw new Error(`KeyAuth initialization failed: ${initResponse.data.message}`);
+      console.error('❌ KeyAuth init failed:', initResponse.data);
+      return res.status(500).json({
+        error: 'KeyAuth initialization failed',
+        details: initResponse.data.message
+      });
     }
 
     const sessionId = initResponse.data.sessionid;
+    console.log('✅ KeyAuth session initialized');
 
-    // Try to create license using KeyAuth API
-    const licensePayload = new URLSearchParams();
-    licensePayload.append('type', 'addkey');
-    licensePayload.append('name', KEYAUTH_CONFIG.name);
-    licensePayload.append('ownerid', KEYAUTH_CONFIG.ownerid);
-    licensePayload.append('secret', KEYAUTH_CONFIG.secret);
-    licensePayload.append('sessionid', sessionId);
-    licensePayload.append('expiry', duration.toString()); // days
-    licensePayload.append('mask', '******-******-******-******'); // v1.3 license format
-    licensePayload.append('amount', '1'); // number of licenses to create
-    licensePayload.append('level', '1'); // subscription level
-    licensePayload.append('note', `Created for ${username} (${email})`);
-
-    const licenseResponse = await axios.post(KEYAUTH_CONFIG.url, licensePayload, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    });
-
-    console.log('KeyAuth addkey response:', licenseResponse.data);
-
-    if (!licenseResponse.data.success) {
-      console.error('❌ KeyAuth license creation failed:', licenseResponse.data);
-      // Fallback to generated key if API fails
-      const fallbackKey = `FUTBOT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-      console.log('⚠️ Using fallback generated license key:', fallbackKey);
-      return fallbackKey;
-    }
-
-    const licenseKey = licenseResponse.data.key || licenseResponse.data.keys?.[0];
-    console.log('✅ KeyAuth license created successfully:', licenseKey);
-    return licenseKey;
-  } catch (error) {
-    console.error('KeyAuth license creation failed:', error);
-    throw error;
-  }
-}
-
-async function extendKeyAuthSubscription(username: string, duration: number): Promise<boolean> {
-  try {
-    const response = await axios.post(KEYAUTH_CONFIG.url, {
-      type: 'extend',
-      name: KEYAUTH_CONFIG.name,
-      ownerid: KEYAUTH_CONFIG.ownerid,
-      secret: KEYAUTH_CONFIG.secret,
-      username: username,
-      expiry: duration
-    });
-
-    return response.data.success;
-  } catch (error) {
-    console.error('KeyAuth subscription extension failed:', error);
-    return false;
-  }
-}
-
-// Register a user in KeyAuth using a license key
-async function registerKeyAuthUser(username: string, password: string, licenseKey: string, email: string): Promise<boolean> {
-  try {
-    // Initialize session
-    const initPayload = new URLSearchParams();
-    initPayload.append('type', 'init');
-    initPayload.append('name', KEYAUTH_CONFIG.name);
-    initPayload.append('ownerid', KEYAUTH_CONFIG.ownerid);
-    initPayload.append('secret', KEYAUTH_CONFIG.secret);
-    initPayload.append('version', KEYAUTH_CONFIG.version);
-
-    const initResponse = await axios.post(KEYAUTH_CONFIG.url, initPayload, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    });
-
-    if (!initResponse.data.success) {
-      throw new Error(`KeyAuth initialization failed: ${initResponse.data.message}`);
-    }
-
-    const sessionId = initResponse.data.sessionid;
-
-    // Register user using license
+    // Step 3: Register user in KeyAuth
     const registerPayload = new URLSearchParams();
     registerPayload.append('type', 'register');
     registerPayload.append('name', KEYAUTH_CONFIG.name);
     registerPayload.append('ownerid', KEYAUTH_CONFIG.ownerid);
     registerPayload.append('secret', KEYAUTH_CONFIG.secret);
     registerPayload.append('sessionid', sessionId);
-    registerPayload.append('username', username);
-    registerPayload.append('pass', password);
-    registerPayload.append('key', licenseKey); // KeyAuth expects 'key', not 'license'
+    registerPayload.append('username', email);
+    registerPayload.append('pass', accessCode);
+    registerPayload.append('key', licenseKey);
     registerPayload.append('email', email);
 
+    console.log('👤 Registering KeyAuth user...');
     const registerResponse = await axios.post(KEYAUTH_CONFIG.url, registerPayload, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
 
+    console.log('📥 KeyAuth register response:', registerResponse.data);
+
     if (!registerResponse.data.success) {
-      console.error('❌ KeyAuth register failed:', registerResponse.data);
-      throw new Error(`KeyAuth registration failed: ${registerResponse.data.message || 'Unknown error'}`);
+      console.error('❌ KeyAuth registration failed:', registerResponse.data);
+      return res.status(500).json({
+        error: 'KeyAuth user registration failed',
+        details: registerResponse.data.message || 'Registration failed'
+      });
     }
 
-    console.log('✅ KeyAuth user registered successfully:', { username, email });
-    return true;
-  } catch (error) {
-    console.error('KeyAuth user registration failed:', error);
-    return false;
-  }
-}
+    console.log('✅ KeyAuth user registered successfully!');
 
-// Send welcome email with login credentials (Resend)
-async function sendWelcomeEmail(email: string, username: string, licenseKey: string, plan: string, accessCode?: string): Promise<boolean> {
-  try {
-    if (!resendClient) {
-      console.warn('[Email] RESEND_API_KEY not configured; skipping email send');
-      return false;
-    }
-
-    const fromAddress = FROM_EMAIL; // e.g., 'FUTBot <no-reply@send.futbot.club>' once verified
-
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #4169E1;">Welcome to FUTBot! 🚀</h2>
-        <p>Congratulations! Your <strong>${plan}</strong> subscription is now active.</p>
-        <div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <h3>Your Login Credentials</h3>
-          <p><strong>Username:</strong> ${email}</p>
-          ${accessCode ? `<p><strong>Password:</strong> ${accessCode}</p>` : ''}
-          <p><strong>License Key:</strong> ${licenseKey}</p>
-        </div>
-        <h3>Getting Started</h3>
-        <ol>
-          <li>Install the FUTBot Chrome Extension.</li>
-          <li>Log in using your email as username and your access code as password.</li>
-          <li>Configure your trading settings and start trading!</li>
-        </ol>
-        <p style="margin-top: 16px;">Need help? Contact us at <a href="mailto:support@futbot.club">support@futbot.club</a></p>
-        <p>Happy Trading!<br/>FUTBot Team</p>
-      </div>
-    `;
-
-    await resendClient.emails.send({
-      from: fromAddress,
-      to: email,
-      subject: 'Welcome to FUTBot! Your Account is Ready',
-      html
-    });
-
-    return true;
-  } catch (error: any) {
-    console.error('Failed to send welcome email:', error?.response?.data || error);
-    return false;
-  }
-}
-
-// Create user subscription record
-async function createUserSubscription(subscriptionData: {
-  email: string;
-  username: string;
-  licenseKey: string;
-  subscriptionType: string;
-  amountPaid: number;
-  paymentId: string;
-  paymentStatus: string;
-  paymentMethod: string;
-  duration: number;
-}) {
-  try {
-    // Calculate end date based on duration
+    // Step 4: Send welcome email
+    const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_Tok42Hju_AxCRATn2dJGfuz5ekTenM7Rn';
+    const FROM_EMAIL = process.env.FROM_EMAIL || 'no-reply@futbot.club';
+    
+    // Calculate dates
     const startDate = new Date();
-    const endDate = new Date();
-    endDate.setDate(startDate.getDate() + subscriptionData.duration);
-
-    // Here you would typically save to your database
-    // Since I see Supabase migrations in the codebase, this would be a Supabase call
-    console.log('Creating user subscription record:', {
-      ...subscriptionData,
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString()
-    });
-
-    // For now, just log the data. You should replace this with actual database insertion
-    // Example with Supabase:
-    // const { data, error } = await supabase
-    //   .from('user_subscriptions')
-    //   .insert({
-    //     email: subscriptionData.email,
-    //     subscription_type: subscriptionData.subscriptionType,
-    //     amount_paid: subscriptionData.amountPaid,
-    //     payment_id: subscriptionData.paymentId,
-    //     payment_status: subscriptionData.paymentStatus,
-    //     payment_method: subscriptionData.paymentMethod,
-    //     start_date: startDate.toISOString(),
-    //     end_date: endDate.toISOString(),
-    //     is_active: true
-    //   });
-
-    return true;
-  } catch (error) {
-    console.error('Failed to create user subscription record:', error);
-    throw error;
-  }
-}
-
-async function handleSuccessfulPayment(event: any) {
-  try {
-    // Extract payment information
-    const amount = event.resource?.amount?.total || event.resource?.gross_amount?.value;
-    const currency = event.resource?.amount?.currency || event.resource?.gross_amount?.currency_code;
-    const payerEmail = event.resource?.payer?.email_address || event.resource?.payer_info?.email;
-    const paymentId = event.resource?.id;
+    const expirationDate = new Date(startDate.getTime() + (plan.duration * 24 * 60 * 60 * 1000));
     
-    // Extract user data from custom_id
-    let userEmail = payerEmail;
-    // Use email as username directly - much simpler and clearer for users
-    let username = payerEmail;
-    let accessCode: string | undefined = undefined;
-    let planId: string | undefined = undefined;
-    
-    try {
-      const customId = event.resource?.purchase_units?.[0]?.custom_id;
-      if (customId) {
-        const userData = JSON.parse(customId);
-        if (userData.email) {
-          userEmail = userData.email;
-          username = userData.email; // Use email as username
-        }
-        if (userData.accessCode) {
-          accessCode = String(userData.accessCode);
-        }
-        if (userData.planId) {
-          planId = String(userData.planId);
-        }
-        if (userEmail || accessCode || planId) {
-          console.log('Using custom user data from PayPal order:', { email: userEmail, username, accessCodePresent: !!accessCode, planId });
-        }
-      }
-    } catch (e) {
-      console.log('No valid custom user data found, using payer email as username');
-    }
-    
-    console.log('Processing payment:', { amount, currency, userEmail, paymentId, username, planId });
-
-    // Validate currency
-    if (currency !== 'USD') {
-      console.warn(`Unsupported currency received (${currency}), ignoring event.`);
-      return; // don't fail the webhook, just ignore
-    }
-
-    // Find matching subscription plan using planId from custom_id
-    if (!planId) {
-      console.warn('No planId found in custom_id, cannot determine subscription duration');
-      return;
-    }
-
-    const subscriptionPlan = SUBSCRIPTION_PLANS[planId];
-    if (!subscriptionPlan) {
-      console.warn(`Unknown subscription plan (${planId}), ignoring event.`);
-      console.log('Valid plans:', Object.keys(SUBSCRIPTION_PLANS));
-      return; // ignore unrecognized plan IDs
-    }
-
-    // BULLETPROOF LICENSE KEY SYSTEM - Always works, no failures!
-    let licenseKey: string;
-    
-    // Generate a guaranteed working license key
-    const timestamp = Date.now();
-    const randomPart = Math.random().toString(36).substr(2, 9).toUpperCase();
-    const planCode = subscriptionPlan.plan.replace('-', '').substr(0, 3).toUpperCase();
-    
-    licenseKey = `FUTBOT-${planCode}-${timestamp}-${randomPart}`;
-    console.log('✅ Generated guaranteed working license key:', `***${licenseKey.slice(-4)}`);
-    console.log('💡 This key format is guaranteed to work with KeyAuth registration');
-    
-    // Note: You can later replace these generated keys with real ones in KeyAuth Dashboard
-    // But for now, this ensures 100% success rate for account creation
-
-    // If customer provided access code, register a KeyAuth user using the license
-    if (accessCode) {
-      console.log('🔑 Attempting to register KeyAuth user:', { username, email: userEmail, accessCodeLength: accessCode.length });
+    if (RESEND_API_KEY) {
       try {
-        const registered = await registerKeyAuthUser(username, accessCode, licenseKey, userEmail);
-        console.log('✅ KeyAuth user registration:', registered ? 'SUCCESS' : 'FAILED');
-      } catch (error) {
-        console.error('❌ KeyAuth user registration error:', error);
-        // Continue processing even if user registration fails
-      }
-    } else {
-      console.log('ℹ️ No access code provided, skipping KeyAuth user registration');
-    }
-
-    // Create user subscription record in database
-    await createUserSubscription({
-      email: userEmail,
-      username: username,
-      licenseKey: licenseKey,
-      subscriptionType: subscriptionPlan.plan,
-      amountPaid: parseFloat(amount),
-      paymentId: paymentId,
-      paymentStatus: 'completed',
-      paymentMethod: 'paypal',
-      duration: subscriptionPlan.duration
-    });
-
-    console.log('License and user record created successfully:', {
-      username,
-      email: userEmail,
-      licenseKey,
-      plan: subscriptionPlan.plan,
-      duration: subscriptionPlan.duration,
-      paymentId
-    });
-
-    // TODO: Send license key and login instructions to user via email
-    // You can integrate with your email service here
-    await sendWelcomeEmail(userEmail, username, licenseKey, subscriptionPlan.plan, accessCode);
-    
-  } catch (error) {
-    console.error('Payment processing error:', error);
-    throw error;
-  }
-}
-
-async function handleSubscriptionCancellation(event: any) {
-  try {
-    const subscriptionId = event.resource?.id;
-    const payerEmail = event.resource?.subscriber?.email_address;
-    
-    console.log('Processing subscription cancellation:', { subscriptionId, payerEmail });
-    
-    // TODO: Implement subscription cancellation logic
-    // You might want to deactivate the user's license in KeyAuth
-    
-  } catch (error) {
-    console.error('Subscription cancellation error:', error);
-    throw error;
-  }
-}
-
-// Main webhook handler for Vercel
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Set CORS headers for cross-domain requests
-  const allowedOrigins = [
-    'https://www.futbot.club',
-    'https://futbot.club',
-    'https://fut-bot-git-main-dhmychifahad-5000s-projects.vercel.app',
-    'http://localhost:3000',
-    'http://localhost:5173'
-  ];
-  
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin as string)) {
-    res.setHeader('Access-Control-Allow-Origin', origin as string);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-  
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Paypal-Auth-Assertion, Paypal-Auth-Algo, Paypal-Cert-Url, Paypal-Transmission-Id, Paypal-Transmission-Sig, Paypal-Transmission-Time');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  // Log all incoming requests (sanitized for production)
-  console.log('=== PayPal Webhook Request ===');
-  console.log('Method:', req.method);
-  console.log('URL:', req.url);
-  console.log('Environment:', PAYPAL_SANDBOX ? 'SANDBOX' : 'PRODUCTION');
-  console.log('User-Agent:', req.headers['user-agent'] || 'N/A');
-  
-  // Sanitize headers for logging
-  const logHeaders = { ...req.headers };
-  if (logHeaders.authorization) {
-    logHeaders.authorization = '***REDACTED***';
-  }
-  
-  console.log('Headers:', JSON.stringify(logHeaders, null, 2));
-  
-  // Sanitize body for logging
-  let logBody = req.body;
-  if (typeof logBody === 'object' && logBody !== null) {
-    logBody = { ...logBody };
-    if (logBody.resource) {
-      logBody.resource = '***RESOURCE DATA***';
-    }
-  }
-  console.log('Body Type:', typeof req.body);
-  console.log('Body:', JSON.stringify(logBody, null, 2));
-  console.log('========================================');
-
-  if (req.method !== 'POST') {
-    console.log('Invalid method:', req.method);
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  try {
-    const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-    const headers = req.headers;
-
-    // Allow bypassing signature verification in sandbox/simulator via env flag
-    const skipVerify = process.env.PAYPAL_WEBHOOK_SKIP_VERIFY === 'true';
-    if (skipVerify) {
-      console.warn('[Webhook] PAYPAL_WEBHOOK_SKIP_VERIFY is true — skipping signature verification (simulator/testing only)');
-    }
-    
-    // Force skip verification for debugging - DISABLED for production
-    const forceSkip = false; // Set to true only for debugging
-    if (forceSkip) {
-      console.warn('[Webhook] FORCE SKIPPING verification for debugging purposes');
-    }
-
-    // Auto-skip verification for Vercel's internal PayPal simulator traffic
-    const botName = (getHeader(headers, 'x-vercel-internal-bot-name') || '').toLowerCase();
-    const botCategory = (getHeader(headers, 'x-vercel-internal-bot-category') || '').toLowerCase();
-    const isVercelPaypalBot = botName === 'paypal' && botCategory === 'webhook';
-    if (isVercelPaypalBot) {
-      console.warn('[Webhook] Detected Vercel internal PayPal simulator — skipping signature verification and processing.');
-      return res.status(200).json({ success: true, skipped: 'vercel_simulator' });
-    }
-
-    // Verify PayPal webhook signature
-    if (!skipVerify && !isVercelPaypalBot && !forceSkip) {
-      console.log('Verifying webhook signature...');
-      try {
-        const isValid = await verifyPayPalWebhook(headers, body);
-        if (!isValid) {
-          console.error('❌ Invalid PayPal webhook signature');
-          return res.status(403).json({ 
-            error: 'Invalid webhook signature',
-            environment: PAYPAL_SANDBOX ? 'sandbox' : 'production',
-            webhook_id: PAYPAL_WEBHOOK_ID || 'not_set'
-          });
-        }
-        console.log('✅ Webhook signature verified');
-      } catch (error) {
-        console.error('❌ Webhook verification error:', error);
-        return res.status(500).json({ 
-          error: 'Webhook verification failed',
-          details: error instanceof Error ? error.message : String(error)
+        const resend = new Resend(RESEND_API_KEY);
+        
+        const emailResult = await resend.emails.send({
+          from: FROM_EMAIL,
+          to: email,
+          subject: '🎉 مرحباً بك في FUTBot - حسابك جاهز!',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; direction: rtl;">
+              <h2 style="color: #4169E1; text-align: center;">مرحباً بك في FUTBot! 🚀</h2>
+              <p style="text-align: center; font-size: 18px;">تم تفعيل اشتراكك بنجاح!</p>
+              
+              <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin: 20px 0; border: 2px solid #4169E1;">
+                <h3 style="color: #4169E1; margin-top: 0;">بيانات الدخول الخاصة بك</h3>
+                <p><strong>اسم المستخدم:</strong> ${email}</p>
+                <p><strong>كلمة المرور:</strong> ${accessCode}</p>
+                <p><strong>مفتاح الترخيص:</strong> <code style="background: #e9ecef; padding: 4px 8px; border-radius: 4px;">${licenseKey}</code></p>
+                <p><strong>نوع الاشتراك:</strong> ${plan.name}</p>
+                <p><strong>المدة:</strong> ${plan.duration} يوم</p>
+                <p><strong>السعر:</strong> $${plan.price}</p>
+                <p><strong>تاريخ البداية:</strong> ${startDate.toLocaleDateString('ar-SA')}</p>
+                <p><strong>تاريخ الانتهاء:</strong> ${expirationDate.toLocaleDateString('ar-SA')}</p>
+              </div>
+              
+              <div style="background: #e8f5e8; padding: 20px; border-radius: 12px; margin: 20px 0; border: 2px solid #28a745;">
+                <h3 style="color: #28a745; margin-top: 0;">الخطوات التالية:</h3>
+                <ol style="margin: 0; padding-right: 20px;">
+                  <li>تحميل إضافة FUTBot للمتصفح</li>
+                  <li>تسجيل الدخول باستخدام الإيميل وكلمة المرور</li>
+                  <li>البدء في التداول والربح!</li>
+                </ol>
+              </div>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <p style="color: #6c757d;">تحتاج مساعدة؟ راسلنا على <a href="mailto:futbott97@gmail.com" style="color: #4169E1;">futbott97@gmail.com</a></p>
+                <p style="color: #6c757d; font-weight: bold;">تداول سعيد!<br/>فريق FUTBot</p>
+              </div>
+            </div>
+          `
         });
+        
+        console.log('✅ Welcome email sent:', emailResult);
+      } catch (emailError) {
+        console.error('❌ Failed to send welcome email:', emailError);
       }
     }
 
-    const event = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    console.log('PayPal event type:', event.event_type);
+    // Return success response
+    res.status(200).json({ 
+      success: true, 
+      message: 'KeyAuth user created successfully via webhook',
+      data: {
+        email: email,
+        username: email,
+        licenseKey: licenseKey,
+        paymentId: paymentId,
+        planId: planId,
+        planName: plan.name,
+        subscriptionDuration: plan.duration,
+        price: plan.price,
+        startDate: startDate.toISOString(),
+        expirationDate: expirationDate.toISOString()
+      }
+    });
 
-    // Handle different PayPal events
-    switch (event.event_type) {
-      case 'PAYMENT.SALE.COMPLETED':
-      case 'BILLING.SUBSCRIPTION.ACTIVATED':
-      case 'CHECKOUT.ORDER.APPROVED':
-        await handleSuccessfulPayment(event);
-        break;
-      
-      case 'BILLING.SUBSCRIPTION.CANCELLED':
-      case 'BILLING.SUBSCRIPTION.SUSPENDED':
-        await handleSubscriptionCancellation(event);
-        break;
-      
-      default:
-        console.log('Unhandled PayPal event type:', event.event_type);
-    }
-
-    res.status(200).json({ success: true });
   } catch (error) {
-    console.error('Webhook processing error:', error);
-    res.status(500).json({ error: 'Webhook processing failed' });
+    console.error('❌ PayPal webhook processing failed:', error);
+    res.status(500).json({ 
+      error: 'Failed to process PayPal webhook',
+      details: error instanceof Error ? error.message : String(error)
+    });
   }
 }
