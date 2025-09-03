@@ -175,11 +175,18 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
         if (response.ok) {
           const result = await response.json();
           console.log('✅ KeyAuth user created successfully:', result);
-          toast.success('🎉 Account created! Check your email for login details.');
+          toast.success(`🎉 Account created successfully! Username: ${accessCode}`);
         } else {
           const error = await response.json();
           console.error('❌ Failed to create KeyAuth user:', error);
-          toast.error('Payment successful, but account setup failed. Contact support.');
+          
+          // Show specific error message
+          const errorMsg = error.message || 'Account setup failed. Contact support.';
+          if (errorMsg.includes('already exists')) {
+            toast.error('This access code is already taken. Please contact support for assistance.');
+          } else {
+            toast.error(`Account setup failed: ${errorMsg}`);
+          }
         }
       } catch (error) {
         console.error('❌ KeyAuth user creation error:', error);
@@ -232,8 +239,8 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
         setPaypalError('PayPal initialization issue. Please refresh the page and try again.');
         toast.error('PayPal initialization issue. Please refresh and try again.');
       } else {
-        setPaypalError(`PayPal error: ${errorMessage}`);
-        toast.error(`PayPal error: ${errorMessage}`);
+        setPaypalError('يبدو أن هناك خللاً ما في الوقت الحالي. يرجى المحاولة مرة أخرى لاحقاً.');
+        toast.error('يبدو أن هناك خللاً ما. يرجى المحاولة مرة أخرى.');
       }
     } else {
       setPaypalError('An unexpected error occurred with PayPal');

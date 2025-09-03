@@ -10,25 +10,32 @@ import { AuthProvider } from './contexts/AuthContext';
 
 import type { PayPalScriptOptions } from '@paypal/paypal-js';
 
-// PayPal configuration - using sandbox for development
+// PayPal configuration - dynamic based on environment
+const isProduction = import.meta.env.NODE_ENV === 'production';
+const useSandbox = import.meta.env.VITE_PAYPAL_SANDBOX !== 'false';
+
 const paypalOptions: PayPalScriptOptions = {
-  // Use PayPal sandbox test client ID that works with localhost
-  clientId: import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AZDxjDScFpQtjWTOUtWKbyN_bDt4OgqaF4eYXlewfBP4-8aqX3PiV8e1GWU6liB2CUXlkA59kJXE7M6R',
+  // Use production or sandbox client ID based on environment
+  clientId: useSandbox 
+    ? (import.meta.env.VITE_PAYPAL_SANDBOX_CLIENT_ID || 'AZDxjDScFpQtjWTOUtWKbyN_bDt4OgqaF4eYXlewfBP4-8aqX3PiV8e1GWU6liB2CUXlkA59kJXE7M6R')
+    : (import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AX6mXdqElTQ87jSXefb4-AFzDj82pMXKDpSWVXhD9ESCTy6uTQB2ZRbYpva4uayp7fGmvKLw63l'),
   currency: 'USD',
   intent: 'capture',
-  components: 'buttons'
+  components: 'buttons',
+  debug: !isProduction
 };
 
 function App() {
-  // Debug: Log the PayPal client ID to verify it's loaded
-  const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AZDxjDScFpQtjWTOUtWKbyN_bDt4OgqaF4eYXlewfBP4-8aqX3PiV8e1GWU6liB2CUXlkA59kJXE7M6R';
-  console.log('PayPal Client ID loaded:', clientId ? 'Yes' : 'No');
-  console.log('Using PayPal environment:', import.meta.env.VITE_PAYPAL_CLIENT_ID ? 'Production' : 'Sandbox (Development)');
+  // Debug: Log the PayPal configuration
+  const actualClientId = useSandbox 
+    ? (import.meta.env.VITE_PAYPAL_SANDBOX_CLIENT_ID || 'AZDxjDScFpQtjWTOUtWKbyN_bDt4OgqaF4eYXlewfBP4-8aqX3PiV8e1GWU6liB2CUXlkA59kJXE7M6R')
+    : (import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AX6mXdqElTQ87jSXefb4-AFzDj82pMXKDpSWVXhD9ESCTy6uTQB2ZRbYpva4uayp7fGmvKLw63l');
   
-  // Log environment status
-  if (!import.meta.env.VITE_PAYPAL_CLIENT_ID) {
-    console.warn('Using fallback PayPal Client ID. Set VITE_PAYPAL_CLIENT_ID in environment variables for production.');
-  }
+  console.log('PayPal Configuration:');
+  console.log('- Environment:', isProduction ? 'Production' : 'Development');
+  console.log('- Using Sandbox:', useSandbox);
+  console.log('- Client ID loaded:', actualClientId ? 'Yes' : 'No');
+  console.log('- Client ID (first 20 chars):', actualClientId?.substring(0, 20) + '...');
   
   return (
     <PayPalScriptProvider options={paypalOptions}>
