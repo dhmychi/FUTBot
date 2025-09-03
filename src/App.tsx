@@ -10,38 +10,24 @@ import { AuthProvider } from './contexts/AuthContext';
 
 import type { PayPalScriptOptions } from '@paypal/paypal-js';
 
-// PayPal configuration - optimized for stability
+// PayPal configuration - using sandbox for development
 const paypalOptions: PayPalScriptOptions = {
-  clientId: import.meta.env.VITE_PAYPAL_CLIENT_ID,
+  // Use PayPal sandbox test client ID that works with localhost
+  clientId: import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AZDxjDScFpQtjWTOUtWKbyN_bDt4OgqaF4eYXlewfBP4-8aqX3PiV8e1GWU6liB2CUXlkA59kJXE7M6R',
   currency: 'USD',
   intent: 'capture',
-  commit: true,
-  vault: false,
-  components: 'buttons',
-  // Simplified funding options for sandbox environment
-  disableFunding: ['card', 'credit', 'paylater', 'venmo'],
-  // Stable configuration for sandbox
-  debug: false, // Disable debug for production
-  dataNamespace: 'paypal_sdk',
-  integrationDate: '2023-10-01',
-  'enable-funding': ['paypal'],
-  // Add stability options
-  'data-sdk-integration-source': 'button-factory',
-  // Ensure proper session handling and UID attribute
-  'data-uid-auto': true,
-  // Force session stability
-  'data-page-type': 'checkout',
-  // Add merchant configuration
-  'data-merchant-id': import.meta.env.VITE_PAYPAL_CLIENT_ID
+  components: 'buttons'
 };
 
 function App() {
   // Debug: Log the PayPal client ID to verify it's loaded
-  console.log('PayPal Client ID:', import.meta.env.VITE_PAYPAL_CLIENT_ID);
+  const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'AZDxjDScFpQtjWTOUtWKbyN_bDt4OgqaF4eYXlewfBP4-8aqX3PiV8e1GWU6liB2CUXlkA59kJXE7M6R';
+  console.log('PayPal Client ID loaded:', clientId ? 'Yes' : 'No');
+  console.log('Using PayPal environment:', import.meta.env.VITE_PAYPAL_CLIENT_ID ? 'Production' : 'Sandbox (Development)');
   
-  // Check if PayPal client ID is configured
+  // Log environment status
   if (!import.meta.env.VITE_PAYPAL_CLIENT_ID) {
-    console.error('PayPal Client ID is not configured. Please set VITE_PAYPAL_CLIENT_ID in your environment variables.');
+    console.warn('Using fallback PayPal Client ID. Set VITE_PAYPAL_CLIENT_ID in environment variables for production.');
   }
   
   return (
