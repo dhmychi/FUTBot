@@ -1,18 +1,20 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import apiPlugin from './vite-plugin-api';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current directory.
   const env = loadEnv(mode, process.cwd(), '');
   
-  // Log environment variables for debugging
-  console.log('PayPal Client ID from Vite Config:', env.VITE_PAYPAL_CLIENT_ID);
+  // Log environment variables for debugging (sandbox var used in dev)
+  console.log('PayPal Sandbox Client ID from Vite Config:', env.VITE_PAYPAL_SANDBOX_CLIENT_ID);
   
   return {
     base: '/', // Vercel deployment - use root
     plugins: [
-      react()
+      react(),
+      apiPlugin({ apiPath: '/api' })
     ],
     define: {
       __APP_VERSION__: JSON.stringify(process.env.npm_package_version),

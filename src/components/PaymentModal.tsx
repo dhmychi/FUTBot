@@ -79,29 +79,16 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
       
       console.log('Creating PayPal order...');
       
-      // Create PayPal order with the plan details and user info
+      // Simple PayPal order - minimal required fields only
       const orderRequest: any = {
         intent: 'CAPTURE',
         purchase_units: [{
           amount: {
-            value: plan.price.toString(),
             currency_code: 'USD',
+            value: plan.price.toString()
           },
-          description: `FUTBot ${plan.name} Subscription`,
-          custom_id: JSON.stringify({
-            planId: plan.id,
-            email: userEmail,
-            accessCode: accessCode,
-            timestamp: Date.now()
-          }),
-        }],
-        application_context: {
-          brand_name: 'FUTBot',
-          user_action: 'PAY_NOW',
-          payment_method: {
-            payee_preferred: 'IMMEDIATE_PAYMENT_REQUIRED'
-          }
-        }
+          description: `FUTBot ${plan.name} Plan`
+        }]
       };
 
       // Only set payer email if it looks valid
@@ -160,7 +147,8 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
       // Create KeyAuth user immediately after payment
       try {
         console.log('🔄 Creating KeyAuth user after payment...');
-        const response = await fetch('/api/create-user-after-payment', {
+        const apiBase = (import.meta as any).env?.VITE_API_BASE_URL || (location.hostname === 'localhost' ? 'https://www.futbot.club' : '');
+        const response = await fetch(`${apiBase}/api/create-user-after-payment`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -177,16 +165,11 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
           console.log('✅ KeyAuth user created successfully:', result);
           toast.success(`🎉 Account created successfully! Username: ${accessCode}`);
         } else {
-          const error = await response.json();
-          console.error('❌ Failed to create KeyAuth user:', error);
-          
-          // Show specific error message
-          const errorMsg = error.message || 'Account setup failed. Contact support.';
-          if (errorMsg.includes('already exists')) {
-            toast.error('This access code is already taken. Please contact support for assistance.');
-          } else {
-            toast.error(`Account setup failed: ${errorMsg}`);
-          }
+          let errorText = '';
+          try { errorText = await response.text(); } catch {}
+          console.error('❌ Failed to create KeyAuth user:', errorText || response.status);
+          const message = errorText || `HTTP ${response.status}`;
+          toast.error(`Account setup failed: ${message}`);
         }
       } catch (error) {
         console.error('❌ KeyAuth user creation error:', error);

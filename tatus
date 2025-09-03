@@ -1,5 +1,0 @@
-[33m35c7b3c[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix PayPal popup issues for live environment: improve popup stability and error handling
-[33m060be85[m Enable PayPal debug mode and add popup handling fixes
-[33m9cba111[m Fix PayPal popup issues: simplify configuration and improve error handling
-[33m463bc33[m Fix PayPal popup issues: improve error handling and popup configuration
-[33mc7814c7[m Fix PayPal integration issues: remove duplicate PayPalScriptProvider and simplify configuration

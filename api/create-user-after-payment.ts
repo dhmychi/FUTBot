@@ -8,11 +8,16 @@ const KEYAUTH_CONFIG = {
   version: '1.0'
 };
 
-// Plan configurations
-const PLAN_CONFIGS = {
+// Plan configurations (map frontend plan ids to KeyAuth subscription names and expiry days)
+const PLAN_CONFIGS: Record<string, { subscription: string; expiry: number }> = {
+  // Frontend plan ids
+  '1_month': { subscription: '1 Month', expiry: 30 },
+  '3_months': { subscription: '3 Months', expiry: 90 },
+  '12_months': { subscription: '12 Months', expiry: 365 },
+  // Backward-compatible aliases
   'basic': { subscription: '1 Month', expiry: 30 },
   'pro': { subscription: '3 Months', expiry: 90 },
-  'premium': { subscription: '6 Months', expiry: 180 }
+  'premium': { subscription: '12 Months', expiry: 365 },
 };
 
 interface CreateUserRequest {
@@ -78,9 +83,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Calculate expiry date
-    const expiryDate = Math.floor(Date.now() / 1000) + (planConfig.expiry * 24 * 60 * 60);
-
     // Create KeyAuth user
     const keyauthResponse = await fetch('https://keyauth.win/api/1.2/', {
       method: 'POST',
@@ -93,7 +95,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         username: accessCode,
         pass: accessCode, // Use access code as password
         email: email,
-        expiry: expiryDate.toString(),
+        // For application API adduser, expiry expects number of days
+        expiry: String(planConfig.expiry),
         subscription: planConfig.subscription,
         name: KEYAUTH_CONFIG.name,
         ownerid: KEYAUTH_CONFIG.ownerid,
@@ -134,7 +137,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         username: accessCode,
         email: email,
         subscription: planConfig.subscription,
-        expiry: expiryDate,
+        expiry_days: planConfig.expiry,
         paymentId: paymentId,
         planId: planId,
         amount: amount
