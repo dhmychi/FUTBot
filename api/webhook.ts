@@ -168,58 +168,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log('✅ License key created successfully via Seller API:', licenseKey);
 
-    // Step 2: Initialize KeyAuth session
-    const initPayload = new URLSearchParams();
-    initPayload.append('type', 'init');
-    initPayload.append('name', KEYAUTH_CONFIG.name);
-    initPayload.append('ownerid', KEYAUTH_CONFIG.ownerid);
-    initPayload.append('secret', KEYAUTH_CONFIG.secret);
-    initPayload.append('version', KEYAUTH_CONFIG.version);
+    // Step 2: Create user directly via Seller API activate
+    console.log('👤 Creating user via Seller API activate...');
+    
+    const activateParams = new URLSearchParams();
+    activateParams.append('sellerkey', KEYAUTH_SELLER_KEY);
+    activateParams.append('type', 'activate');
+    activateParams.append('user', email);
+    activateParams.append('key', licenseKey);
+    activateParams.append('pass', accessCode);
 
-    console.log('🔄 Initializing KeyAuth session...');
-    const initResponse = await axios.post(KEYAUTH_CONFIG.url, initPayload, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    console.log('📤 Activate API Parameters:', {
+      sellerkey: `***${KEYAUTH_SELLER_KEY.slice(-4)}`,
+      type: 'activate',
+      user: email,
+      key: `***${licenseKey.slice(-4)}`,
+      pass: `***${accessCode.slice(-3)}`
     });
 
-    if (!initResponse.data.success) {
-      console.error('❌ KeyAuth init failed:', initResponse.data);
+    const activateResponse = await axios.get(`https://keyauth.win/api/seller/?${activateParams.toString()}`);
+
+    console.log('📥 Activate API Response:', activateResponse.data);
+
+    if (!activateResponse.data.success) {
+      console.error('❌ User activation failed:', activateResponse.data);
       return res.status(500).json({
-        error: 'KeyAuth initialization failed',
-        details: initResponse.data.message
+        error: 'Failed to create KeyAuth user',
+        details: activateResponse.data.message || 'User activation failed'
       });
     }
 
-    const sessionId = initResponse.data.sessionid;
-    console.log('✅ KeyAuth session initialized');
-
-    // Step 3: Register user in KeyAuth
-    const registerPayload = new URLSearchParams();
-    registerPayload.append('type', 'register');
-    registerPayload.append('name', KEYAUTH_CONFIG.name);
-    registerPayload.append('ownerid', KEYAUTH_CONFIG.ownerid);
-    registerPayload.append('secret', KEYAUTH_CONFIG.secret);
-    registerPayload.append('sessionid', sessionId);
-    registerPayload.append('username', email);
-    registerPayload.append('pass', accessCode);
-    registerPayload.append('key', licenseKey);
-    registerPayload.append('email', email);
-
-    console.log('👤 Registering KeyAuth user...');
-    const registerResponse = await axios.post(KEYAUTH_CONFIG.url, registerPayload, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    });
-
-    console.log('📥 KeyAuth register response:', registerResponse.data);
-
-    if (!registerResponse.data.success) {
-      console.error('❌ KeyAuth registration failed:', registerResponse.data);
-      return res.status(500).json({
-        error: 'KeyAuth user registration failed',
-        details: registerResponse.data.message || 'Registration failed'
-      });
-    }
-
-    console.log('✅ KeyAuth user registered successfully!');
+    console.log('✅ KeyAuth user created successfully via Seller API activate!');
 
     // Step 4: Send welcome email
     const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_Tok42Hju_AxCRATn2dJGfuz5ekTenM7Rn';
