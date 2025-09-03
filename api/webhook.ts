@@ -149,85 +149,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log('📥 Seller API Response:', sellerResponse.data);
 
-    let licenseKey: string;
-
     if (!sellerResponse.data.success) {
       console.error('❌ Seller API failed:', sellerResponse.data);
-      
-      // Fallback: Try App API addkey
-      console.log('🔄 Trying App API addkey as fallback...');
-      
-      try {
-        // First initialize KeyAuth session
-        const initPayload = new URLSearchParams();
-        initPayload.append('type', 'init');
-        initPayload.append('name', KEYAUTH_CONFIG.name);
-        initPayload.append('ownerid', KEYAUTH_CONFIG.ownerid);
-        initPayload.append('secret', KEYAUTH_CONFIG.secret);
-        initPayload.append('version', KEYAUTH_CONFIG.version);
-
-        console.log('🔄 Initializing KeyAuth session for App API...');
-        const initResponse = await axios.post(KEYAUTH_CONFIG.url, initPayload, {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        });
-
-        if (!initResponse.data.success) {
-          throw new Error(`KeyAuth init failed: ${initResponse.data.message}`);
-        }
-
-        const sessionId = initResponse.data.sessionid;
-        console.log('✅ KeyAuth session initialized for App API');
-
-        // Now try to create license key
-        const appParams = new URLSearchParams();
-        appParams.append('type', 'addkey');
-        appParams.append('name', KEYAUTH_CONFIG.name);
-        appParams.append('ownerid', KEYAUTH_CONFIG.ownerid);
-        appParams.append('secret', KEYAUTH_CONFIG.secret);
-        appParams.append('sessionid', sessionId);
-        appParams.append('expiry', plan.duration.toString());
-        appParams.append('mask', '******-******-******-******');
-        appParams.append('amount', '1');
-        appParams.append('level', '1');
-        appParams.append('format', 'JSON');
-        
-        const appResponse = await axios.post(KEYAUTH_CONFIG.url, appParams, {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        });
-        
-        console.log('📥 App API Response:', appResponse.data);
-        
-        if (appResponse.data.success) {
-          const appLicenseKey = appResponse.data.key || appResponse.data.keys?.[0];
-          if (appLicenseKey) {
-            console.log('✅ App API license key created successfully:', appLicenseKey);
-            licenseKey = appLicenseKey;
-          } else {
-            throw new Error('No license key from App API');
-          }
-        } else {
-          throw new Error(appResponse.data.message || 'App API failed');
-        }
-      } catch (appError) {
-        console.error('❌ App API fallback also failed:', appError);
-        return res.status(500).json({
-          error: 'Failed to create license key via both Seller API and App API',
-          sellerError: sellerResponse.data.message,
-          appError: appError instanceof Error ? appError.message : String(appError)
-        });
-      }
-    } else {
-      // Seller API succeeded
-      licenseKey = sellerResponse.data.key || sellerResponse.data.keys?.[0];
-      if (!licenseKey) {
-        console.error('❌ No license key returned from Seller API');
-        return res.status(500).json({
-          error: 'No license key returned from Seller API',
-          response: sellerResponse.data
-        });
-      }
-      console.log('✅ License key created successfully via Seller API:', licenseKey);
+      return res.status(500).json({
+        error: 'Failed to create license key via Seller API',
+        details: sellerResponse.data.message || 'Seller API failed'
+      });
     }
+
+    const licenseKey = sellerResponse.data.key || sellerResponse.data.keys?.[0];
+    if (!licenseKey) {
+      console.error('❌ No license key returned from Seller API');
+      return res.status(500).json({
+        error: 'No license key returned from Seller API',
+        response: sellerResponse.data
+      });
+    }
+
+    console.log('✅ License key created successfully via Seller API:', licenseKey);
 
     // Step 2: Initialize KeyAuth session
     const initPayload = new URLSearchParams();
