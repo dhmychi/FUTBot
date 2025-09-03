@@ -70,11 +70,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    // Validate Seller Key length
+    if (KEYAUTH_SELLER_KEY.length !== 32) {
+      return res.status(500).json({
+        error: 'Invalid Seller Key length',
+        details: `Seller key must be exactly 32 characters long, got ${KEYAUTH_SELLER_KEY.length}`,
+        sellerKey: KEYAUTH_SELLER_KEY ? `***${KEYAUTH_SELLER_KEY.slice(-4)}` : 'MISSING'
+      });
+    }
+
     console.log('KeyAuth Config:', {
       name: KEYAUTH_CONFIG.name,
       ownerid: KEYAUTH_CONFIG.ownerid ? 'SET' : 'MISSING',
       secret: KEYAUTH_CONFIG.secret ? 'SET' : 'MISSING',
-      sellerKey: KEYAUTH_SELLER_KEY ? 'SET' : 'MISSING'
+      sellerKey: KEYAUTH_SELLER_KEY ? `***${KEYAUTH_SELLER_KEY.slice(-4)} (${KEYAUTH_SELLER_KEY.length} chars)` : 'MISSING'
     });
 
     // الخطوة 1: إنشاء مفتاح license حقيقي عبر Seller API
@@ -105,11 +114,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log('Trying App API addkey as fallback...');
       
       try {
+        // First initialize KeyAuth session
+        const initPayload = new URLSearchParams();
+        initPayload.append('type', 'init');
+        initPayload.append('name', KEYAUTH_CONFIG.name);
+        initPayload.append('ownerid', KEYAUTH_CONFIG.ownerid);
+        initPayload.append('secret', KEYAUTH_CONFIG.secret);
+        initPayload.append('version', KEYAUTH_CONFIG.version);
+
+        console.log('Initializing KeyAuth session for App API...');
+        const initResponse = await axios.post(KEYAUTH_CONFIG.url, initPayload, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+
+        if (!initResponse.data.success) {
+          throw new Error(`KeyAuth init failed: ${initResponse.data.message}`);
+        }
+
+        const sessionId = initResponse.data.sessionid;
+        console.log('KeyAuth session initialized for App API');
+
+        // Now try to create license key
         const appParams = new URLSearchParams();
         appParams.append('type', 'addkey');
         appParams.append('name', KEYAUTH_CONFIG.name);
         appParams.append('ownerid', KEYAUTH_CONFIG.ownerid);
         appParams.append('secret', KEYAUTH_CONFIG.secret);
+        appParams.append('sessionid', sessionId);
         appParams.append('expiry', subscriptionDuration.toString());
         appParams.append('mask', '******-******-******-******');
         appParams.append('amount', '1');
