@@ -12,10 +12,12 @@ import type { PayPalScriptOptions } from '@paypal/paypal-js';
 
 // PayPal configuration - simplified for testing
 
+const CURRENCY = import.meta.env.VITE_PAYPAL_CURRENCY || 'USD';
+
 const paypalOptions: PayPalScriptOptions = {
   // Use environment variable for production, fallback for development
   clientId: import.meta.env.VITE_PAYPAL_SANDBOX_CLIENT_ID || 'AZDxjDScFpQtjWTOUtWKbyN_bDt4OgqaF4eYXlewfBP4-8aqX3PiV8e1GWU6liB2CUXlkA59kJXE7M6R',
-  currency: 'USD',
+  currency: CURRENCY,
   intent: 'capture',
   components: 'buttons'
 };
