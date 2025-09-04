@@ -1,17 +1,17 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import * as paypal from '@paypal/checkout-server-sdk';
 
-const PAYPAL_CLIENT_ID = process.env.VITE_PAYPAL_CLIENT_ID || '';
-const PAYPAL_CLIENT_SECRET = process.env.VITE_PAYPAL_CLIENT_SECRET || '';
-const PAYPAL_SANDBOX = process.env.PAYPAL_SANDBOX === 'true';
+const PAYPAL_CLIENT_ID = process.env.VITE_PAYPAL_CLIENT_ID || process.env.PAYPAL_CLIENT_ID || '';
+const PAYPAL_CLIENT_SECRET = process.env.VITE_PAYPAL_CLIENT_SECRET || process.env.PAYPAL_CLIENT_SECRET || '';
+const PAYPAL_ENVIRONMENT = (process.env.PAYPAL_ENVIRONMENT || (process.env.PAYPAL_SANDBOX === 'true' ? 'sandbox' : 'live') || 'sandbox').toLowerCase();
 
 const configureEnvironment = () => {
   const clientId = PAYPAL_CLIENT_ID;
   const clientSecret = PAYPAL_CLIENT_SECRET;
 
-  const environment = PAYPAL_SANDBOX
-    ? new paypal.core.SandboxEnvironment(clientId, clientSecret)
-    : new paypal.core.LiveEnvironment(clientId, clientSecret);
+  const environment = PAYPAL_ENVIRONMENT === 'live'
+    ? new paypal.core.LiveEnvironment(clientId, clientSecret)
+    : new paypal.core.SandboxEnvironment(clientId, clientSecret);
 
   return new paypal.core.PayPalHttpClient(environment);
 };

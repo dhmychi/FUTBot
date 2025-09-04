@@ -5,12 +5,15 @@ import paypal from '@paypal/checkout-server-sdk';
 const configureEnvironment = () => {
   const clientId = process.env.VITE_PAYPAL_CLIENT_ID || process.env.PAYPAL_CLIENT_ID || '';
   const clientSecret = process.env.VITE_PAYPAL_CLIENT_SECRET || process.env.PAYPAL_CLIENT_SECRET || '';
-  
+  const environmentName = (process.env.PAYPAL_ENVIRONMENT || 'sandbox').toLowerCase();
+
   if (!clientId || !clientSecret) {
     throw new Error('PayPal credentials not configured');
   }
-  
-  const environment = new paypal.core.SandboxEnvironment(clientId, clientSecret);
+
+  const environment = environmentName === 'live'
+    ? new paypal.core.LiveEnvironment(clientId, clientSecret)
+    : new paypal.core.SandboxEnvironment(clientId, clientSecret);
   return new paypal.core.PayPalHttpClient(environment);
 };
 

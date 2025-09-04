@@ -97,14 +97,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // KeyAuth configuration
     const KEYAUTH_CONFIG = {
-      name: process.env.KEYAUTH_APP_NAME || "futbot",
-      ownerid: process.env.KEYAUTH_OWNER_ID || "j5oBWrvrnm",
-      secret: process.env.KEYAUTH_APP_SECRET || "71d7d7717aea788ae29b063fab062482e707ae9826c1e425acffaa7cd816dfc5",
-      version: process.env.KEYAUTH_APP_VERSION || "1.0",
+      name: process.env.KEYAUTH_APP_NAME,
+      ownerid: process.env.KEYAUTH_OWNER_ID,
+      secret: process.env.KEYAUTH_APP_SECRET,
+      version: process.env.KEYAUTH_APP_VERSION,
       url: "https://keyauth.win/api/1.2/"
     };
     
-    const KEYAUTH_SELLER_KEY = process.env.KEYAUTH_SELLER_KEY || 'e5bb8c336379263e3e19f5939357fac6';
+    const KEYAUTH_SELLER_KEY = process.env.KEYAUTH_SELLER_KEY as string;
 
     // Validate KeyAuth config
     if (!KEYAUTH_CONFIG.ownerid || !KEYAUTH_CONFIG.secret || !KEYAUTH_SELLER_KEY) {
