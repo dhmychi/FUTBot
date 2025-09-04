@@ -84,7 +84,7 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
         intent: 'CAPTURE',
         purchase_units: [{
           amount: {
-            currency_code: (import.meta as any).env?.VITE_PAYPAL_CURRENCY || 'USD',
+            currency_code: 'USD',
             value: plan.price.toString()
           },
           description: `FUTBot ${plan.name} Plan`

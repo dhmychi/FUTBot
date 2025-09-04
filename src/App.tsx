@@ -11,8 +11,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import type { PayPalScriptOptions } from '@paypal/paypal-js';
 
 // PayPal configuration - simplified for testing
-
-const CURRENCY = import.meta.env.VITE_PAYPAL_CURRENCY || 'USD';
+// Force USD to avoid CURRENCY_NOT_SUPPORTED in Sandbox
+const CURRENCY = 'USD';
 
 const paypalOptions: PayPalScriptOptions = {
   // Use environment variable for production, fallback for development
