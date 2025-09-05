@@ -1,12 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 
-// KeyAuth configuration
-const KEYAUTH_CONFIG = {
-  name: process.env.KEYAUTH_NAME || 'futbot',
-  ownerid: process.env.KEYAUTH_OWNERID || 'j5oBWrvrnm',
-  secret: process.env.KEYAUTH_SECRET || '71d7d7717aea788ae29b063fab062482e707ae9826c1e425acffaa7cd816dfc5',
-  version: '1.0'
-};
 
 // Plan configurations (map frontend plan ids to KeyAuth subscription names and expiry days)
 const PLAN_CONFIGS: Record<string, { subscription: string; expiry: number }> = {
@@ -28,13 +21,6 @@ interface CreateUserRequest {
   amount: number;
 }
 
-// CORS configuration
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Max-Age': '86400',
-};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Handle CORS preflight
@@ -83,29 +69,87 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Create KeyAuth user
-    const keyauthResponse = await fetch('https://keyauth.win/api/1.2/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'FUTBot-KeyAuth-Client/1.0'
-      },
-      body: new URLSearchParams({
-        type: 'adduser',
-        username: accessCode,
-        pass: accessCode, // Use access code as password
-        email: email,
-        // For application API adduser, expiry expects number of days
-        expiry: String(planConfig.expiry),
-        subscription: planConfig.subscription,
-        name: KEYAUTH_CONFIG.name,
-        ownerid: KEYAUTH_CONFIG.ownerid,
-        secret: KEYAUTH_CONFIG.secret,
-        version: KEYAUTH_CONFIG.version
-      }).toString()
+    // Get KEYAUTH_SELLER_KEY from environment
+    const KEYAUTH_SELLER_KEY = process.env.KEYAUTH_SELLER_KEY as string;
+    
+    if (!KEYAUTH_SELLER_KEY) {
+      return res.status(500).json({
+        success: false,
+        error: 'KeyAuth configuration incomplete',
+        message: 'KEYAUTH_SELLER_KEY not found in environment variables'
+      });
+    }
+
+    // Step 1: Create license key via Seller API
+    console.log('🔑 Creating license key via Seller API...');
+    
+    const axios = (await import('axios')).default;
+    
+    const sellerParams = new URLSearchParams();
+    sellerParams.append('sellerkey', KEYAUTH_SELLER_KEY);
+    sellerParams.append('type', 'add');
+    sellerParams.append('expiry', planConfig.expiry.toString());
+    sellerParams.append('amount', '1');
+    sellerParams.append('level', '1');
+    sellerParams.append('mask', '******-******-******-******');
+    sellerParams.append('format', 'JSON');
+    sellerParams.append('note', `Created for ${email} - Plan: ${planId} - Payment: ${paymentId}`);
+
+    const sellerResponse = await axios.post('https://keyauth.win/api/seller/', sellerParams, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
 
-    const keyauthData = await keyauthResponse.json();
+    console.log('📥 Seller API Response:', sellerResponse.data);
+
+    if (!sellerResponse.data.success) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to create license key via Seller API',
+        message: sellerResponse.data.message || 'Seller API failed',
+        keyauth_response: sellerResponse.data
+      });
+    }
+
+    const licenseKey = sellerResponse.data.key || sellerResponse.data.keys?.[0];
+    if (!licenseKey) {
+      return res.status(500).json({
+        success: false,
+        error: 'No license key returned from Seller API',
+        keyauth_response: sellerResponse.data
+      });
+    }
+
+    console.log('✅ License key created successfully via Seller API:', licenseKey);
+
+    // Step 2: Create user directly via Seller API activate
+    console.log('👤 Creating user via Seller API activate...');
+    
+    const activateParams = new URLSearchParams();
+    activateParams.append('sellerkey', KEYAUTH_SELLER_KEY);
+    activateParams.append('type', 'activate');
+    activateParams.append('user', email);
+    activateParams.append('key', licenseKey);
+    activateParams.append('pass', accessCode);
+
+    const activateResponse = await axios.get(`https://keyauth.win/api/seller/?${activateParams.toString()}`);
+
+    console.log('📥 Activate API Response:', activateResponse.data);
+
+    if (!activateResponse.data.success) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to create KeyAuth user',
+        message: activateResponse.data.message || 'User activation failed',
+        keyauth_response: activateResponse.data
+      });
+    }
+
+    const keyauthData = {
+      success: true,
+      message: 'User created successfully via Seller API',
+      licenseKey: licenseKey,
+      user: email
+    };
     
     console.log('KeyAuth API Response:', keyauthData);
 
@@ -132,10 +176,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Success response
     const response = {
       success: true,
-      message: 'User created successfully',
+      message: 'User created successfully via Seller API',
       data: {
-        username: accessCode,
+        username: email,
         email: email,
+        accessCode: accessCode,
+        licenseKey: licenseKey,
         subscription: planConfig.subscription,
         expiry_days: planConfig.expiry,
         paymentId: paymentId,
