@@ -1,6 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 
-
 // Plan configurations (map frontend plan ids to KeyAuth subscription names and expiry days)
 const PLAN_CONFIGS: Record<string, { subscription: string; expiry: number }> = {
   // Frontend plan ids
@@ -20,7 +19,6 @@ interface CreateUserRequest {
   planId: string;
   amount: number;
 }
-
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Handle CORS preflight
@@ -70,7 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Get KEYAUTH_SELLER_KEY from environment
-    const KEYAUTH_SELLER_KEY = process.env.KEYAUTH_SELLER_KEY as string;
+    const KEYAUTH_SELLER_KEY = process.env.KEYAUTH_SELLER_KEY || "e5bb8c336379263e3e19f5939357fac6";
     
     if (!KEYAUTH_SELLER_KEY) {
       return res.status(500).json({
@@ -95,9 +93,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     sellerParams.append('format', 'JSON');
     sellerParams.append('note', `Created for ${email} - Plan: ${planId} - Payment: ${paymentId}`);
 
-    const sellerResponse = await axios.post('https://keyauth.win/api/seller/', sellerParams, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    });
+    // ✅ fix: use GET instead of POST
+    const sellerResponse = await axios.get(`https://keyauth.win/api/seller/?${sellerParams.toString()}`);
 
     console.log('📥 Seller API Response:', sellerResponse.data);
 
