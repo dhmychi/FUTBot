@@ -137,11 +137,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       let errorMessage = activateResponse.data.message || 'User activation failed';
       
       if (errorMessage.includes('Username Already Exists') || errorMessage.includes('already exists')) {
-        errorMessage = 'هذا الحساب موجود مسبقاً. يرجى استخدام إيميل مختلف أو تسجيل الدخول إذا كان لديك حساب.';
+        errorMessage = 'This account already exists. Please use a different email or log in if you have an existing account.';
       } else if (errorMessage.includes('subscription')) {
-        errorMessage = 'خطأ في خطة الاشتراك. يرجى التواصل مع الدعم الفني.';
+        errorMessage = 'Invalid subscription plan. Please contact support.';
       } else if (errorMessage.includes('expiry')) {
-        errorMessage = 'خطأ في تاريخ الانتهاء. يرجى التواصل مع الدعم الفني.';
+        errorMessage = 'Invalid expiry date. Please contact support.';
       }
 
       return res.status(400).json({
