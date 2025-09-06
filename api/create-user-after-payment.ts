@@ -133,10 +133,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log('📥 Activate API Response:', activateResponse.data);
 
     if (!activateResponse.data.success) {
-      return res.status(500).json({
+      // Handle specific KeyAuth errors with better messages
+      let errorMessage = activateResponse.data.message || 'User activation failed';
+      
+      if (errorMessage.includes('Username Already Exists') || errorMessage.includes('already exists')) {
+        errorMessage = 'هذا الحساب موجود مسبقاً. يرجى استخدام إيميل مختلف أو تسجيل الدخول إذا كان لديك حساب.';
+      } else if (errorMessage.includes('subscription')) {
+        errorMessage = 'خطأ في خطة الاشتراك. يرجى التواصل مع الدعم الفني.';
+      } else if (errorMessage.includes('expiry')) {
+        errorMessage = 'خطأ في تاريخ الانتهاء. يرجى التواصل مع الدعم الفني.';
+      }
+
+      return res.status(400).json({
         success: false,
-        error: 'Failed to create KeyAuth user',
-        message: activateResponse.data.message || 'User activation failed',
+        error: 'KeyAuth user creation failed',
+        message: errorMessage,
         keyauth_response: activateResponse.data
       });
     }
@@ -149,26 +160,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
     
     console.log('KeyAuth API Response:', keyauthData);
-
-    if (!keyauthData.success) {
-      // Handle specific KeyAuth errors
-      let errorMessage = keyauthData.message || 'Failed to create user account';
-      
-      if (errorMessage.includes('already exists')) {
-        errorMessage = 'This access code is already registered. Please use a different code.';
-      } else if (errorMessage.includes('subscription')) {
-        errorMessage = 'Invalid subscription plan. Please contact support.';
-      } else if (errorMessage.includes('expiry')) {
-        errorMessage = 'Invalid expiry date. Please contact support.';
-      }
-
-      return res.status(400).json({
-        success: false,
-        error: 'KeyAuth error',
-        message: errorMessage,
-        keyauth_response: keyauthData
-      });
-    }
 
     // Success response
     const response = {
