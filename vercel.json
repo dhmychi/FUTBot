@@ -1,5 +1,12 @@
 {
   "version": 2,
+  "env": {
+    "KEYAUTH_SELLER_KEY": "e5bb8c336379263e3e19f5939357fac6",
+    "VITE_PAYPAL_CLIENT_ID": "AYWxJUUHc56DPvfWhS19vVPSTEiVdW43eMcHTuyXgh6_51R5MnBt2pDXCP7JxhkVm2enqv8MuN4_l3SJ",
+    "PAYPAL_CLIENT_SECRET": "EPfnWHWC0Ub3a0KtE2f7np1zgLYSAkly_BSc38zKdpNfH-eAigQM_HoFdKkSTRAR3H0c7PBWO7M3ItNx",
+    "PAYPAL_ENVIRONMENT": "sandbox",
+    "PAYPAL_WEBHOOK_ID": "77S98565UN457033T"
+  },
   "rewrites": [
     {
       "source": "/((?!api/).*)",
