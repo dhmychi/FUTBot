@@ -102,7 +102,7 @@ const faqs = [
   },
   {
     question: "What's the average daily profit?",
-    answer: "Most users earn between 30,000 to 50,000 coins daily, depending on market conditions and trading settings."
+    answer: "Most users earn between 200,000 to 500,000 coins daily, depending on market conditions and trading settings."
   },
   {
     question: "How long until I see results?",
