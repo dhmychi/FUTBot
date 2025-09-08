@@ -126,6 +126,14 @@ export default function LandingPage() {
   const { scrollYProgress } = useScroll();
   const backgroundY = useTransform(scrollYProgress, [0, 1], ['0%', '50%']);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const pricingRef = useRef<HTMLDivElement>(null);
+
+  const scrollToPricing = () => {
+    pricingRef.current?.scrollIntoView({ 
+      behavior: 'smooth',
+      block: 'start'
+    });
+  };
 
   useEffect(() => {
     if (!isAutoplay) return;
@@ -393,17 +401,15 @@ export default function LandingPage() {
               transition={{ delay: 0.5 }}
               className="mt-8"
             >
-              <a
-                href={CHROME_EXTENSION_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={scrollToPricing}
                 className="group relative px-8 py-4 bg-gradient-to-r from-futbot-primary to-futbot-accent 
                          rounded-lg overflow-hidden hover:shadow-lg hover:shadow-futbot-primary/20 
                          transition-all duration-300 transform hover:scale-105 inline-flex items-center"
               >
                 <Download className="w-5 h-5 mr-2" />
-                <span>Install Extension</span>
-              </a>
+                <span>Subscribe Now</span>
+              </button>
             </motion.div>
           </motion.div>
         </div>
@@ -531,7 +537,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="pricing" className="relative py-16">
+      <section id="pricing" ref={pricingRef} className="relative py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <PricingPlans onSelectPlan={handleSelectPlan} />
         </div>
