@@ -13,18 +13,18 @@ const CHROME_EXTENSION_URL = 'https://chromewebstore.google.com/detail/futbot/km
 const stats = [
   {
     icon: Coins,
-    value: "15M+",
-    label: "Daily Trading Volume"
+    value: "Ultra Fast",
+    label: "Millisecond Snipes"
   },
   {
     icon: TrendingUp,
-    value: "200K",
+    value: "300K",
     label: "Coins Per Day Average"
   },
   {
     icon: Users,
-    value: "5.2K",
-    label: "Active Traders"
+    value: "10K",
+    label: "Already Used FUTBot"
   },
   {
     icon: Shield,
