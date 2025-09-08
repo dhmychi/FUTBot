@@ -13,9 +13,9 @@ interface SEOProps {
 }
 
 export default function SEO({
-  title = "FUTBot - Best FIFA Ultimate Team Trading Bot | 24/7 Automated Trading",
-  description = "FUTBot - The best FIFA Ultimate Team trading bot. 24/7 automated trading, complete security, guaranteed profits. Start now and earn thousands of coins daily!",
-  keywords = "FUTBot, FIFA Ultimate Team, trading bot, automated trading, FIFA bot, FUT trading, FIFA coins, FIFA trading, Ultimate Team bot, EA Sports FIFA, FIFA 24, FIFA 25, trading automation, coin farming, FIFA market bot",
+  title = "FUTBot | FC26 Autobuyer & Sniper – Over 2M Coins Weekly",
+  description = "FUTBot | FC26 - The fastest EA FC 26 autobuyer and sniping bot. Earn over 2M coins weekly with our advanced AI-powered trading system. Free trial available!",
+  keywords = "FUTBot, FC26, EA FC 26, autobuyer, sniping bot, FIFA 26, Ultimate Team, trading bot, automated trading, FUT coins, EA Sports FC, FC 26 bot, sniping, autobuyer FC26, FIFA trading bot, coin farming, FUT sniping, EA FC autobuyer, FC26 sniping bot, free trial, 2M coins weekly",
   image = "https://futbot.club/wolf-logo.png",
   url = "https://futbot.club",
   type = "website",
@@ -85,14 +85,14 @@ export default function SEO({
 // Predefined SEO configurations for different pages
 export const SEOConfigs = {
   home: {
-    title: "FUTBot - Best FIFA Ultimate Team Trading Bot | 24/7 Automated Trading",
-    description: "FUTBot - The best FIFA Ultimate Team trading bot. 24/7 automated trading, complete security, guaranteed profits. Start now and earn thousands of coins daily!",
-    keywords: "FUTBot, FIFA Ultimate Team, trading bot, automated trading, FIFA bot, FUT trading, FIFA coins, FIFA trading, Ultimate Team bot, EA Sports FIFA, FIFA 24, FIFA 25, trading automation, coin farming, FIFA market bot",
+    title: "FUTBot | FC26 Autobuyer & Sniper – Over 2M Coins Weekly",
+    description: "FUTBot | FC26 - The fastest EA FC 26 autobuyer and sniping bot. Earn over 2M coins weekly with our advanced AI-powered trading system. Free trial available!",
+    keywords: "FUTBot, FC26, EA FC 26, autobuyer, sniping bot, FIFA 26, Ultimate Team, trading bot, automated trading, FUT coins, EA Sports FC, FC 26 bot, sniping, autobuyer FC26, FIFA trading bot, coin farming, FUT sniping, EA FC autobuyer, FC26 sniping bot, free trial, 2M coins weekly",
     structuredData: {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
-      "name": "FUTBot",
-      "description": "The best FIFA Ultimate Team trading bot. 24/7 automated trading, complete security, guaranteed profits.",
+      "name": "FUTBot | FC26",
+      "description": "The fastest EA FC 26 autobuyer and sniping bot. Earn over 2M coins weekly with our advanced AI-powered trading system.",
       "url": "https://futbot.club",
       "applicationCategory": "GameApplication",
       "operatingSystem": "Web Browser",
@@ -140,37 +140,37 @@ export const SEOConfigs = {
   },
   
   terms: {
-    title: "Terms of Service - FUTBot",
-    description: "Terms and conditions for using FUTBot. Read our terms and conditions before using our services.",
-    keywords: "terms of service, FUTBot, terms and conditions, usage policy",
+    title: "Terms of Service - FUTBot | FC26",
+    description: "Terms and conditions for using FUTBot | FC26. Read our terms and conditions before using our services.",
+    keywords: "terms of service, FUTBot, FC26, terms and conditions, usage policy",
     url: "/terms"
   },
   
   privacy: {
-    title: "Privacy Policy - FUTBot",
-    description: "FUTBot privacy policy. Learn how we protect your data and privacy.",
-    keywords: "privacy policy, FUTBot, data protection, privacy",
+    title: "Privacy Policy - FUTBot | FC26",
+    description: "FUTBot | FC26 privacy policy. Learn how we protect your data and privacy.",
+    keywords: "privacy policy, FUTBot, FC26, data protection, privacy",
     url: "/privacy"
   },
   
   refund: {
-    title: "Refund Policy - FUTBot",
-    description: "FUTBot refund policy. Learn about our refund terms and procedures.",
-    keywords: "refund policy, FUTBot, money back guarantee, refund",
+    title: "Refund Policy - FUTBot | FC26",
+    description: "FUTBot | FC26 refund policy. Learn about our refund terms and procedures.",
+    keywords: "refund policy, FUTBot, FC26, money back guarantee, refund",
     url: "/refund"
   },
   
   register: {
-    title: "Register - FUTBot",
-    description: "Register with FUTBot and get your subscription. Start your automated trading journey.",
-    keywords: "register, FUTBot, subscription, automated trading",
+    title: "Register - FUTBot | FC26",
+    description: "Register with FUTBot | FC26 and get your subscription. Start your automated trading journey.",
+    keywords: "register, FUTBot, FC26, subscription, automated trading",
     url: "/register"
   },
   
   notFound: {
-    title: "Page Not Found - FUTBot",
-    description: "The page you are looking for does not exist. Return to FUTBot homepage.",
-    keywords: "404, page not found, FUTBot",
+    title: "Page Not Found - FUTBot | FC26",
+    description: "The page you are looking for does not exist. Return to FUTBot | FC26 homepage.",
+    keywords: "404, page not found, FUTBot, FC26",
     url: "/404"
   }
 };
