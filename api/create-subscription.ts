@@ -78,9 +78,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         description: '12 months access to FUTBot Premium'
       },
       'test_plan': {
-        name: 'Test Plan (1 Cent)',
-        price: '0.01',
-        description: 'Test plan for 1 cent - 1 day access'
+        name: 'Test Plan (Micro)',
+        price: '0.000000000000000001',
+        description: 'Test plan for micro amount - 1 day access'
       }
     };
 

@@ -65,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       '1_month': { name: 'شهر واحد', duration: 30, price: 15.00 },
       '3_months': { name: '3 أشهر', duration: 90, price: 24.99 },
       '12_months': { name: 'سنة كاملة', duration: 365, price: 49.99 },
-      'test_plan': { name: 'خطة اختبار', duration: 1, price: 0.01 }
+      'test_plan': { name: 'خطة اختبار', duration: 1, price: 0.000000000000000001 }
     };
 
     const plan = PLANS[planId as keyof typeof PLANS];

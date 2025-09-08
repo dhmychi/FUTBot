@@ -32,7 +32,7 @@ const plans: SubscriptionPlan[] = [
   {
     id: 'test_plan',
     name: 'Test Plan',
-    price: 0.01,
+    price: 0.000000000000000001,
     duration: '1 day',
     features: [
       '⚡ Instant Activation',
