@@ -13,7 +13,7 @@ interface SEOProps {
 }
 
 export default function SEO({
-  title = "FUTBot | FC26 Autobuyer & Sniper – Over 2M Coins Weekly",
+  title = "🤖 FUTBot | FC26 Autobuyer & Sniper – Over 2M Coins Weekly 💰",
   description = "FUTBot | FC26 - The fastest EA FC 26 autobuyer and sniping bot. Earn over 2M coins weekly with our advanced AI-powered trading system. Free trial available!",
   keywords = "FUTBot, FC26, EA FC 26, autobuyer, sniping bot, FIFA 26, Ultimate Team, trading bot, automated trading, FUT coins, EA Sports FC, FC 26 bot, sniping, autobuyer FC26, FIFA trading bot, coin farming, FUT sniping, EA FC autobuyer, FC26 sniping bot, free trial, 2M coins weekly",
   image = "https://futbot.club/wolf-logo.png",
@@ -85,7 +85,7 @@ export default function SEO({
 // Predefined SEO configurations for different pages
 export const SEOConfigs = {
   home: {
-    title: "FUTBot | FC26 Autobuyer & Sniper – Over 2M Coins Weekly",
+    title: "🤖 FUTBot | FC26 Autobuyer & Sniper – Over 2M Coins Weekly 💰",
     description: "FUTBot | FC26 - The fastest EA FC 26 autobuyer and sniping bot. Earn over 2M coins weekly with our advanced AI-powered trading system. Free trial available!",
     keywords: "FUTBot, FC26, EA FC 26, autobuyer, sniping bot, FIFA 26, Ultimate Team, trading bot, automated trading, FUT coins, EA Sports FC, FC 26 bot, sniping, autobuyer FC26, FIFA trading bot, coin farming, FUT sniping, EA FC autobuyer, FC26 sniping bot, free trial, 2M coins weekly",
     structuredData: {
