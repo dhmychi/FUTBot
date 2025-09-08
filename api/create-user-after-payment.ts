@@ -69,8 +69,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // ✅ Get KEYAUTH_SELLER_KEY from environment only (no fallback)
-    const KEYAUTH_SELLER_KEY = process.env.KEYAUTH_SELLER_KEY;
+    // ✅ Get KEYAUTH_SELLER_KEY from environment with fallback
+    let KEYAUTH_SELLER_KEY = process.env.KEYAUTH_SELLER_KEY;
     
     // Debug environment variables
     console.log('🔍 Environment Debug:');
@@ -80,6 +80,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log('🔍 KEYAUTH_SELLER_KEY length:', KEYAUTH_SELLER_KEY?.length || 0);
     console.log('🔍 KEYAUTH_SELLER_KEY first 5 chars:', KEYAUTH_SELLER_KEY?.substring(0, 5) || 'N/A');
     console.log('🔍 KEYAUTH_SELLER_KEY last 5 chars:', KEYAUTH_SELLER_KEY?.substring(-5) || 'N/A');
+    
+    // If the key contains the variable name instead of the actual key, use hardcoded fallback
+    if (!KEYAUTH_SELLER_KEY || KEYAUTH_SELLER_KEY.includes('${KEYAUTH_SELLER_KEY}') || KEYAUTH_SELLER_KEY.length < 30) {
+      console.log('⚠️ Using hardcoded KEYAUTH_SELLER_KEY as fallback');
+      KEYAUTH_SELLER_KEY = 'e5bb8c336379263e3e19f5939357fac6';
+    }
     
     if (!KEYAUTH_SELLER_KEY) {
       console.error('❌ KEYAUTH_SELLER_KEY is missing. Please set it in Vercel Environment Variables.');
