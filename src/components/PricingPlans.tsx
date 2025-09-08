@@ -76,9 +76,10 @@ const plans: SubscriptionPlan[] = [
 
 interface PricingPlansProps {
   onSelectPlan: (plan: SubscriptionPlan) => void;
+  plansRef?: React.RefObject<HTMLDivElement>;
 }
 
-export default function PricingPlans({ onSelectPlan }: PricingPlansProps) {
+export default function PricingPlans({ onSelectPlan, plansRef }: PricingPlansProps) {
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
@@ -118,7 +119,7 @@ export default function PricingPlans({ onSelectPlan }: PricingPlansProps) {
         </div>
       </motion.div>
 
-      <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto px-4">
+      <div ref={plansRef} className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto px-4">
         {plans.map((plan, index) => (
           <motion.div
             key={plan.id}

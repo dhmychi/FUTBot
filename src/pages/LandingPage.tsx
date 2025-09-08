@@ -537,9 +537,9 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="pricing" ref={pricingRef} className="relative py-16">
+      <section id="pricing" className="relative py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <PricingPlans onSelectPlan={handleSelectPlan} />
+          <PricingPlans onSelectPlan={handleSelectPlan} plansRef={pricingRef} />
         </div>
       </section>
 
