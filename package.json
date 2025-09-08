@@ -22,10 +22,12 @@
     "date-fns": "^3.3.1",
     "express": "^4.18.2",
     "framer-motion": "^11.0.8",
+    "gtag": "^1.0.1",
     "lucide-react": "^0.344.0",
     "qrcode.react": "^3.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-helmet-async": "^2.0.5",
     "react-hot-toast": "^2.6.0",
     "react-router-dom": "^6.22.2",
     "resend": "^6.0.2"

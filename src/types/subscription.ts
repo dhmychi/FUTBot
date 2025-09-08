@@ -15,7 +15,9 @@ export interface Subscription {
 export interface SubscriptionPlan {
   id: '1_month' | '3_months' | '12_months';
   name: string;
-  price: number;
+  price: number; // Monthly price (displayed prominently)
+  monthlyPrice: number; // Monthly price
+  totalPrice: number; // Total price for the period
   originalPrice?: number;
   duration: string;
   popular?: boolean;

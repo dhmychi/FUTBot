@@ -1,11 +1,13 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
+import { HelmetProvider } from 'react-helmet-async';
 import LandingPage from './pages/LandingPage';
 import Register from './pages/Register';
 import TermsPage from './pages/Terms';
 import PrivacyPage from './pages/Privacy';
 import RefundPage from './pages/Refund';
+import NotFound from './pages/NotFound';
 import { AuthProvider } from './contexts/AuthContext';
 
 import type { PayPalScriptOptions } from '@paypal/paypal-js';
@@ -25,20 +27,23 @@ function App() {
   console.log('PayPal: Using Client ID from env');
   
   return (
-    <PayPalScriptProvider options={paypalOptions}>
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="/refund" element={<RefundPage />} />
-          </Routes>
-          <Toaster position="top-right" />
-        </BrowserRouter>
-      </AuthProvider>
-    </PayPalScriptProvider>
+    <HelmetProvider>
+      <PayPalScriptProvider options={paypalOptions}>
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/refund" element={<RefundPage />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <Toaster position="top-right" />
+          </BrowserRouter>
+        </AuthProvider>
+      </PayPalScriptProvider>
+    </HelmetProvider>
   );
 }
 

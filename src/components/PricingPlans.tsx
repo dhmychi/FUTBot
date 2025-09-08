@@ -33,6 +33,8 @@ const plans: SubscriptionPlan[] = [
     id: '1_month',
     name: 'Monthly',
     price: 15,
+    monthlyPrice: 15,
+    totalPrice: 15,
     duration: '1 month',
     features: [
       '⚡ Instant Activation',
@@ -45,7 +47,9 @@ const plans: SubscriptionPlan[] = [
   {
     id: '3_months',
     name: '3 Months',
-    price: 24.99,
+    price: 8.33, // 24.99 / 3 = 8.33 per month
+    monthlyPrice: 8.33,
+    totalPrice: 24.99,
     duration: '3 months',
     popular: true,
     features: [
@@ -60,7 +64,9 @@ const plans: SubscriptionPlan[] = [
   {
     id: '12_months',
     name: '12 Months',
-    price: 49.99,
+    price: 4.17, // 49.99 / 12 = 4.17 per month
+    monthlyPrice: 4.17,
+    totalPrice: 49.99,
     duration: '12 months',
     features: [
       '⚡ Instant Activation',
@@ -143,11 +149,21 @@ export default function PricingPlans({ onSelectPlan, plansRef }: PricingPlansPro
                 
                 <h3 className="text-2xl font-bold text-white text-center mb-2">{plan.name}</h3>
                 
-                <div className="flex items-end justify-center space-x-2 mt-6 mb-8">
-                  <span className="text-4xl font-bold bg-gradient-to-r from-futbot-primary to-blue-400 bg-clip-text text-transparent">
-                    ${plan.price}
-                  </span>
-                  <span className="text-lg text-gray-400 mb-1">/{plan.duration}</span>
+                <div className="flex flex-col items-center mt-6 mb-8">
+                  <div className="flex items-end justify-center space-x-2">
+                    <span className="text-4xl font-bold bg-gradient-to-r from-futbot-primary to-blue-400 bg-clip-text text-transparent">
+                      ${plan.price}
+                    </span>
+                    <span className="text-lg text-gray-400 mb-1">/month</span>
+                  </div>
+                  {plan.totalPrice !== plan.price && (
+                    <div className="mt-2 text-center">
+                      <span className="text-sm text-gray-500 line-through">${plan.totalPrice} total</span>
+                      <span className="text-xs text-green-400 ml-2">
+                        Save ${(plan.totalPrice - (plan.price * (plan.id === '3_months' ? 3 : 12))).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-3 mt-8">

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+  <!-- Homepage - English (Default) -->
+  <url>
+    <loc>https://futbot.club/</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://futbot.club/" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://futbot.club/ar/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://futbot.club/de/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://futbot.club/fr/" />
+    <xhtml:link rel="alternate" hreflang="nl" href="https://futbot.club/nl/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://futbot.club/" />
+  </url>
+
+  <!-- Homepage - Arabic -->
+  <url>
+    <loc>https://futbot.club/ar/</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://futbot.club/" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://futbot.club/ar/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://futbot.club/de/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://futbot.club/fr/" />
+    <xhtml:link rel="alternate" hreflang="nl" href="https://futbot.club/nl/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://futbot.club/" />
+  </url>
+
+  <!-- Homepage - German -->
+  <url>
+    <loc>https://futbot.club/de/</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://futbot.club/" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://futbot.club/ar/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://futbot.club/de/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://futbot.club/fr/" />
+    <xhtml:link rel="alternate" hreflang="nl" href="https://futbot.club/nl/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://futbot.club/" />
+  </url>
+
+  <!-- Homepage - French -->
+  <url>
+    <loc>https://futbot.club/fr/</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://futbot.club/" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://futbot.club/ar/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://futbot.club/de/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://futbot.club/fr/" />
+    <xhtml:link rel="alternate" hreflang="nl" href="https://futbot.club/nl/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://futbot.club/" />
+  </url>
+
+  <!-- Homepage - Dutch -->
+  <url>
+    <loc>https://futbot.club/nl/</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://futbot.club/" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://futbot.club/ar/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://futbot.club/de/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://futbot.club/fr/" />
+    <xhtml:link rel="alternate" hreflang="nl" href="https://futbot.club/nl/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://futbot.club/" />
+  </url>
+
+  <!-- Register Page -->
+  <url>
+    <loc>https://futbot.club/register</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Terms of Service -->
+  <url>
+    <loc>https://futbot.club/terms</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- Privacy Policy -->
+  <url>
+    <loc>https://futbot.club/privacy</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- Refund Policy -->
+  <url>
+    <loc>https://futbot.club/refund</loc>
+    <lastmod>2024-01-15</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+</urlset>

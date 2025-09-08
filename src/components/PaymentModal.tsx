@@ -8,6 +8,8 @@ interface PricingPlan {
   id: string;
   name: string;
   price: number;
+  monthlyPrice?: number;
+  totalPrice?: number;
   duration: string;
   features: string[];
 }
@@ -22,7 +24,7 @@ interface PaymentModalProps {
 export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: PaymentModalProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paypalError, setPaypalError] = useState('');
-  const [paypalReady, setPaypalReady] = useState(false);
+  const [, setPaypalReady] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   // Access code the customer will use to log in (acts like password)
   const [accessCode, setAccessCode] = useState('');
@@ -85,7 +87,7 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
         purchase_units: [{
           amount: {
             currency_code: 'USD',
-            value: plan.price.toString()
+            value: (plan.totalPrice || plan.price).toString()
           },
           description: `FUTBot ${plan.name} Plan`
         }]
@@ -156,7 +158,7 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
             accessCode: accessCode,
             paymentId: details.id,
             planId: plan.id,
-            amount: plan.price
+            amount: plan.totalPrice || plan.price
           })
         });
         
@@ -265,21 +267,27 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
         </button>
         
         <h2 className="text-2xl font-bold text-white mb-2">Complete Your Purchase</h2>
-        <p className="text-gray-400 mb-6">You're subscribing to the {plan.name} plan for ${plan.price} per {plan.duration}</p>
+        <p className="text-gray-400 mb-6">You're subscribing to the {plan.name} plan for ${plan.price}/month</p>
         
         <div className="space-y-4">
           <div className="p-4 bg-futbot-surface-light rounded-lg">
             <h3 className="font-semibold text-white mb-2">Order Summary</h3>
             <div className="flex justify-between text-gray-300 text-sm">
               <span>{plan.name} Subscription</span>
-              <span>${plan.price}</span>
+              <span>${plan.totalPrice || plan.price}</span>
             </div>
+            {plan.totalPrice && plan.totalPrice !== plan.price && (
+              <div className="flex justify-between text-xs text-gray-400 mt-1">
+                <span>Monthly rate: ${plan.price}/month</span>
+                <span>Duration: {plan.duration}</span>
+              </div>
+            )}
           </div>
           
           <div className="pt-4">
             <div className="flex justify-between font-semibold text-lg mb-6">
               <span>Total</span>
-              <span>${plan.price} USD</span>
+              <span>${plan.totalPrice || plan.price} USD</span>
             </div>
             
             <div className="space-y-4">

@@ -6,6 +6,7 @@ import { SubscriptionPlan } from '../types/subscription';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { WolfLogo } from '../components/WolfLogo';
 import { useAuth } from '../contexts/AuthContext';
+import SEO, { SEOConfigs } from '../components/SEO';
 
 const CHROME_EXTENSION_URL = 'https://chromewebstore.google.com/detail/futbot/kmjemgkhfhpjfblpbcomcpbnofglmnmn?pli=1';
 
@@ -319,12 +320,14 @@ export default function LandingPage() {
   );
 
   return (
-    <div className="min-h-screen bg-futbot-dark text-white overflow-hidden">
-      <canvas
-        ref={canvasRef}
-        className="fixed inset-0 w-full h-full pointer-events-none"
-        style={{ zIndex: 0 }}
-      />
+    <>
+      <SEO {...SEOConfigs.home} />
+      <div className="min-h-screen bg-futbot-dark text-white overflow-hidden">
+        <canvas
+          ref={canvasRef}
+          className="fixed inset-0 w-full h-full pointer-events-none"
+          style={{ zIndex: 0 }}
+        />
 
       <header className="fixed w-full z-50">
         <nav className="glass-effect border-b border-futbot-primary/20">
@@ -559,6 +562,7 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   );
 }
