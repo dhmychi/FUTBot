@@ -106,11 +106,11 @@ const faqs = [
   },
   {
     question: "How long until I see results?",
-    answer: "Most users start seeing profits within the first 24 hours. The bot needs some time to analyze the market and find the best trading opportunities."
+    answer: "From the very first use, the bot starts cracking the market and turning trades into profit. Instant impact, instant results. ⚡🔥"
   },
   {
     question: "Can I customize trading strategies?",
-    answer: "Yes! FUTBot comes with pre-configured strategies, but you can customize filters, price ranges, and trading methods to match your preferences."
+    answer: "Yes! You have full control over the bot – manage it the way you want. Adjust filters, set your own price ranges, choose your trading style, and fine-tune every detail until it matches your strategy. The power is completely in your hands. 🚀"
   },
   {
     question: "What happens if I need help?",
