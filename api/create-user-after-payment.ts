@@ -6,7 +6,7 @@ const PLAN_CONFIGS: Record<string, { subscription: string; expiry: number }> = {
   '1_month': { subscription: '1 Month', expiry: 30 },
   '3_months': { subscription: '3 Months', expiry: 90 },
   '12_months': { subscription: '12 Months', expiry: 365 },
-  'test_plan': { subscription: 'Test Plan (Micro)', expiry: 1 },
+  'test_plan': { subscription: 'Test Plan', expiry: 1 },
   // Backward-compatible aliases
   'basic': { subscription: '1 Month', expiry: 30 },
   'pro': { subscription: '3 Months', expiry: 90 },

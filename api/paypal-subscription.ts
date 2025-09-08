@@ -35,8 +35,8 @@ const SUBSCRIPTION_PLANS = {
     duration: 365
   },
   'test_plan': {
-    name: 'Test Plan (Micro)',
-    price: '0.000000000000000001',
+    name: 'Test Plan (1 Cent)',
+    price: '0.01',
     duration: 1
   }
 };
