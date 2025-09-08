@@ -33,11 +33,6 @@ const SUBSCRIPTION_PLANS = {
     price: '49.99',
     duration: 365
   },
-  'test_plan': {
-    name: 'Test Plan (1 Cent)',
-    price: '0.01',
-    duration: 1
-  }
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

@@ -77,11 +77,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         price: '49.99',
         description: '12 months access to FUTBot Premium'
       },
-      'test_plan': {
-        name: 'Test Plan (1 Cent)',
-        price: '0.01',
-        description: 'Test plan for 1 cent - 1 day access'
-      }
     };
 
     const selectedPlan = plans[plan as keyof typeof plans];

@@ -30,18 +30,6 @@ const features = [
 
 const plans: SubscriptionPlan[] = [
   {
-    id: 'test_plan',
-    name: 'Test Plan',
-    price: 0.01,
-    duration: '1 day',
-    features: [
-      '⚡ Instant Activation',
-      '🧪 Test All Features',
-      '🎮 Full Access',
-      '💬 Support Included'
-    ],
-  },
-  {
     id: '1_month',
     name: 'Monthly',
     price: 15,
@@ -131,7 +119,7 @@ export default function PricingPlans({ onSelectPlan, plansRef }: PricingPlansPro
         </div>
       </motion.div>
 
-      <div ref={plansRef} className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto px-4">
+        <div ref={plansRef} className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto px-4">
         {plans.map((plan, index) => (
           <motion.div
             key={plan.id}
