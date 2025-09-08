@@ -71,6 +71,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // ✅ Get KEYAUTH_SELLER_KEY from environment only (no fallback)
     const KEYAUTH_SELLER_KEY = process.env.KEYAUTH_SELLER_KEY;
+    
+    // Debug environment variables
+    console.log('🔍 Environment Debug:');
+    console.log('🔍 All env keys:', Object.keys(process.env).filter(key => key.includes('KEYAUTH')));
+    console.log('🔍 KEYAUTH_SELLER_KEY exists:', !!KEYAUTH_SELLER_KEY);
+    console.log('🔍 KEYAUTH_SELLER_KEY type:', typeof KEYAUTH_SELLER_KEY);
+    console.log('🔍 KEYAUTH_SELLER_KEY length:', KEYAUTH_SELLER_KEY?.length || 0);
+    console.log('🔍 KEYAUTH_SELLER_KEY first 5 chars:', KEYAUTH_SELLER_KEY?.substring(0, 5) || 'N/A');
+    console.log('🔍 KEYAUTH_SELLER_KEY last 5 chars:', KEYAUTH_SELLER_KEY?.substring(-5) || 'N/A');
+    
     if (!KEYAUTH_SELLER_KEY) {
       console.error('❌ KEYAUTH_SELLER_KEY is missing. Please set it in Vercel Environment Variables.');
       return res.status(500).json({
@@ -98,11 +108,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     sellerParams.append('format', 'JSON');
     sellerParams.append('note', `Created for ${email} - Plan: ${planId} - Payment: ${paymentId}`);
 
-    console.log('📤 Seller API URL:', `https://keyauth.win/api/seller/?${sellerParams.toString().replace(/sellerkey=[^&]+/, 'sellerkey=***')}`);
+    const sellerUrl = `https://keyauth.win/api/seller/?${sellerParams.toString()}`;
+    console.log('📤 Seller API URL (masked):', sellerUrl.replace(/sellerkey=[^&]+/, 'sellerkey=***'));
+    console.log('📤 Seller API URL (full):', sellerUrl);
+    console.log('📤 Seller key in URL:', sellerParams.get('sellerkey'));
 
     try {
       // ✅ use GET instead of POST
-      const sellerResponse = await axios.get(`https://keyauth.win/api/seller/?${sellerParams.toString()}`);
+      const sellerResponse = await axios.get(sellerUrl);
 
       console.log('📥 Seller API Response:', sellerResponse.data);
 
