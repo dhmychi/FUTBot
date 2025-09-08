@@ -32,6 +32,11 @@ const SUBSCRIPTION_PLANS = {
     name: '12 Months Subscription',
     price: '49.99',
     duration: 365
+  },
+  'test_plan': {
+    name: 'Test Plan (1 Cent)',
+    price: '0.01',
+    duration: 1
   }
 };
 
