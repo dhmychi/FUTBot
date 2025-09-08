@@ -94,6 +94,28 @@ export default function PricingPlans({ onSelectPlan, plansRef }: PricingPlansPro
     setIsPaymentModalOpen(true);
   };
 
+  const calculateSavings = (plan: SubscriptionPlan) => {
+    if (plan.id === '1_month') return 0;
+    
+    const monthlyRate = plan.monthlyPrice;
+    const months = plan.id === '3_months' ? 3 : 12;
+    const regularPrice = 15 * months; // Regular monthly price
+    const savings = regularPrice - plan.totalPrice;
+    
+    return Math.max(0, savings);
+  };
+
+  const getDiscountPercentage = (plan: SubscriptionPlan) => {
+    if (plan.id === '1_month') return 0;
+    
+    const monthlyRate = plan.monthlyPrice;
+    const months = plan.id === '3_months' ? 3 : 12;
+    const regularPrice = 15 * months;
+    const discount = ((regularPrice - plan.totalPrice) / regularPrice) * 100;
+    
+    return Math.max(0, Math.round(discount));
+  };
+
   return (
     <div className="py-16">
       <motion.div
@@ -150,18 +172,39 @@ export default function PricingPlans({ onSelectPlan, plansRef }: PricingPlansPro
                 <h3 className="text-2xl font-bold text-white text-center mb-2">{plan.name}</h3>
                 
                 <div className="flex flex-col items-center mt-6 mb-8">
+                  {/* Monthly Price */}
                   <div className="flex items-end justify-center space-x-2">
                     <span className="text-4xl font-bold bg-gradient-to-r from-futbot-primary to-blue-400 bg-clip-text text-transparent">
                       ${plan.price}
                     </span>
                     <span className="text-lg text-gray-400 mb-1">/month</span>
                   </div>
-                  {plan.totalPrice !== plan.price && (
-                    <div className="mt-2 text-center">
-                      <span className="text-sm text-gray-500 line-through">${plan.totalPrice} total</span>
-                      <span className="text-xs text-green-400 ml-2">
-                        Save ${(plan.totalPrice - (plan.price * (plan.id === '3_months' ? 3 : 12))).toFixed(2)}
-                      </span>
+                  
+                  {/* Total Price and Savings */}
+                  {plan.id !== '1_month' && (
+                    <div className="mt-3 text-center space-y-1">
+                      <div className="text-sm text-gray-400">
+                        Total: <span className="text-white font-semibold">${plan.totalPrice}</span>
+                      </div>
+                      {calculateSavings(plan) > 0 && (
+                        <div className="flex items-center justify-center space-x-2">
+                          <span className="text-xs text-gray-500 line-through">
+                            ${15 * (plan.id === '3_months' ? 3 : 12)} regular price
+                          </span>
+                          <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full font-medium">
+                            Save ${calculateSavings(plan).toFixed(2)} ({getDiscountPercentage(plan)}% off)
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Single month plan */}
+                  {plan.id === '1_month' && (
+                    <div className="mt-3 text-center">
+                      <div className="text-sm text-gray-400">
+                        Total: <span className="text-white font-semibold">${plan.totalPrice}</span>
+                      </div>
                     </div>
                   )}
                 </div>
