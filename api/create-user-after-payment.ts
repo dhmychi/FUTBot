@@ -43,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log('🔄 Creating KeyAuth user after payment:', {
       email,
-      accessCode,
+      accessCode: accessCode ? '***' + accessCode.slice(-3) : 'MISSING',
       paymentId,
       planId,
       amount
@@ -51,6 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Validate required fields
     if (!email || !accessCode || !paymentId || !planId) {
+      console.error('❌ Missing required fields:', { email: !!email, accessCode: !!accessCode, paymentId: !!paymentId, planId: !!planId });
       return res.status(400).json({
         success: false,
         error: 'Missing required fields',
@@ -81,6 +82,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Step 1: Create license key via Seller API
     console.log('🔑 Creating license key via Seller API...');
+    console.log('📋 Plan config:', planConfig);
+    console.log('📧 Email:', email);
+    console.log('🔑 Seller key length:', KEYAUTH_SELLER_KEY.length);
     
     const axios = (await import('axios')).default;
     
@@ -94,44 +98,51 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     sellerParams.append('format', 'JSON');
     sellerParams.append('note', `Created for ${email} - Plan: ${planId} - Payment: ${paymentId}`);
 
-    // ✅ fix: use GET instead of POST
-    const sellerResponse = await axios.get(`https://keyauth.win/api/seller/?${sellerParams.toString()}`);
+    console.log('📤 Seller API URL:', `https://keyauth.win/api/seller/?${sellerParams.toString().replace(/sellerkey=[^&]+/, 'sellerkey=***')}`);
 
-    console.log('📥 Seller API Response:', sellerResponse.data);
+    try {
+      // ✅ fix: use GET instead of POST
+      const sellerResponse = await axios.get(`https://keyauth.win/api/seller/?${sellerParams.toString()}`);
 
-    if (!sellerResponse.data.success) {
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to create license key via Seller API',
-        message: sellerResponse.data.message || 'Seller API failed',
-        keyauth_response: sellerResponse.data
-      });
-    }
+      console.log('📥 Seller API Response:', sellerResponse.data);
 
-    const licenseKey = sellerResponse.data.key || sellerResponse.data.keys?.[0];
-    if (!licenseKey) {
-      return res.status(500).json({
-        success: false,
-        error: 'No license key returned from Seller API',
-        keyauth_response: sellerResponse.data
-      });
-    }
+      if (!sellerResponse.data.success) {
+        console.error('❌ Seller API failed:', sellerResponse.data);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to create license key via Seller API',
+          message: sellerResponse.data.message || 'Seller API failed',
+          keyauth_response: sellerResponse.data
+        });
+      }
 
-    console.log('✅ License key created successfully via Seller API:', licenseKey);
+      const licenseKey = sellerResponse.data.key || sellerResponse.data.keys?.[0];
+      if (!licenseKey) {
+        console.error('❌ No license key returned:', sellerResponse.data);
+        return res.status(500).json({
+          success: false,
+          error: 'No license key returned from Seller API',
+          keyauth_response: sellerResponse.data
+        });
+      }
 
-    // Step 2: Create user directly via Seller API activate
-    console.log('👤 Creating user via Seller API activate...');
-    
-    const activateParams = new URLSearchParams();
-    activateParams.append('sellerkey', KEYAUTH_SELLER_KEY);
-    activateParams.append('type', 'activate');
-    activateParams.append('user', email);
-    activateParams.append('key', licenseKey);
-    activateParams.append('pass', accessCode);
+      console.log('✅ License key created successfully via Seller API:', licenseKey);
 
-    const activateResponse = await axios.get(`https://keyauth.win/api/seller/?${activateParams.toString()}`);
+      // Step 2: Create user directly via Seller API activate
+      console.log('👤 Creating user via Seller API activate...');
+      
+      const activateParams = new URLSearchParams();
+      activateParams.append('sellerkey', KEYAUTH_SELLER_KEY);
+      activateParams.append('type', 'activate');
+      activateParams.append('user', email);
+      activateParams.append('key', licenseKey);
+      activateParams.append('pass', accessCode);
 
-    console.log('📥 Activate API Response:', activateResponse.data);
+      console.log('📤 Activate API URL:', `https://keyauth.win/api/seller/?${activateParams.toString().replace(/sellerkey=[^&]+/, 'sellerkey=***').replace(/key=[^&]+/, 'key=***')}`);
+
+      const activateResponse = await axios.get(`https://keyauth.win/api/seller/?${activateParams.toString()}`);
+
+      console.log('📥 Activate API Response:', activateResponse.data);
 
     if (!activateResponse.data.success) {
       // Handle specific KeyAuth errors with better messages
@@ -239,6 +250,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200)
       .setHeader('Access-Control-Allow-Origin', '*')
       .json(response);
+
+    } catch (error) {
+      console.error('❌ Error in KeyAuth API calls:', error);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      return res.status(500)
+        .setHeader('Access-Control-Allow-Origin', '*')
+        .json({
+          success: false,
+          error: 'KeyAuth API error',
+          message: errorMessage,
+          details: process.env.NODE_ENV === 'development' ? error : undefined
+        });
+    }
 
   } catch (error) {
     console.error('❌ Error creating user after payment:', error);
