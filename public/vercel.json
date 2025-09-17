@@ -1,0 +1,6 @@
+{
+  "version": 2,
+  "ignoreCommand": "echo 'Skipping Vercel build for gh-pages static branch' && exit 0"
+}
+
+

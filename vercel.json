@@ -1,5 +1,8 @@
 {
   "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"gh-pages\" ]; then echo 'Skipping build for gh-pages branch'; exit 0; else exit 1; fi",
   "env": {
     "KEYAUTH_SELLER_KEY": "${KEYAUTH_SELLER_KEY}",
     "VITE_PAYPAL_CLIENT_ID": "${VITE_PAYPAL_CLIENT_ID}",
