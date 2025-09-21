@@ -9,6 +9,10 @@ import PrivacyPage from './pages/Privacy';
 import RefundPage from './pages/Refund';
 import NotFound from './pages/NotFound';
 import { AuthProvider } from './contexts/AuthContext';
+import { I18nProvider } from './contexts/I18nContext';
+import en from './locales/en';
+import ar from './locales/ar';
+import es from './locales/es';
 
 import type { PayPalScriptOptions } from '@paypal/paypal-js';
 
@@ -29,19 +33,21 @@ function App() {
   return (
     <HelmetProvider>
       <PayPalScriptProvider options={paypalOptions}>
-        <AuthProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/terms" element={<TermsPage />} />
-              <Route path="/privacy" element={<PrivacyPage />} />
-              <Route path="/refund" element={<RefundPage />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            <Toaster position="top-right" />
-          </BrowserRouter>
-        </AuthProvider>
+        <I18nProvider dictionaries={{ en, ar, es }}>
+          <AuthProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/terms" element={<TermsPage />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/refund" element={<RefundPage />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              <Toaster position="top-right" />
+            </BrowserRouter>
+          </AuthProvider>
+        </I18nProvider>
       </PayPalScriptProvider>
     </HelmetProvider>
   );

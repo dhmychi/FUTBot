@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Zap, Clock, ChevronRight, Sparkles, Download, Award, Lock, Users, HelpCircle, ChevronDown, BarChart, Star, TrendingUp, Coins, Settings, Bot, Gauge, Sliders } from 'lucide-react';
+import { Shield, Zap, Clock, ChevronRight, Sparkles, Download, Award, Lock, Users, HelpCircle, ChevronDown, BarChart, Star, TrendingUp, Coins, Settings, Bot, Gauge, Sliders, ChevronLeft } from 'lucide-react';
 import PricingPlans from '../components/PricingPlans';
 import { SubscriptionPlan } from '../types/subscription';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { WolfLogo } from '../components/WolfLogo';
+import LanguageSwitcher from '../components/LanguageSwitcher';
+import { useI18n } from '../contexts/I18nContext';
 import { useAuth } from '../contexts/AuthContext';
 import SEO, { SEOConfigs } from '../components/SEO';
 
@@ -35,7 +37,7 @@ const stats = [
 
 const testimonials = [
   {
-    text: "البوت خيالي! حققت ارباح ضخمة في اول اسبوع. سهل الاستخدام وما يحتاج خبرة 🎯",
+    text: "Insane results! Huge profits in my first week. Super easy to use. 🎯",
     rating: 5,
     emoji: "💎",
     style: "text-2xl font-bold"
@@ -47,7 +49,7 @@ const testimonials = [
     style: "text-xl italic"
   },
   {
-    text: "والله العظيم افضل بوت جربته! ربحت اكثر من ٢٥٠ الف كوين في يومين 🔥",
+    text: "Best bot I've tried! Earned over 250k coins in two days. 🔥",
     rating: 5,
     emoji: "⚡",
     style: "text-2xl"
@@ -59,7 +61,7 @@ const testimonials = [
     style: "text-lg font-medium"
   },
   {
-    text: "مستحيل اتخيل اني كنت اتاجر يدوي قبل! البوت غير حياتي تماماً ✨",
+    text: "Can't believe I used to trade manually! This bot changed everything. ✨",
     rating: 5,
     emoji: "🎮",
     style: "text-xl font-bold"
@@ -69,6 +71,47 @@ const testimonials = [
     rating: 5,
     emoji: "🎯",
     style: "text-xl"
+  },
+  {
+    text: "كنت اشتري كويز اختصر علي كل شيء، الحين وأنا نايم ألاقي الحساب صايد كم لاعب",
+    rating: 5,
+    emoji: "🌙",
+    style: "text-xl"
+  },
+  {
+    text: "I’ve been running FUTBot for about 3 months. Works well and definitely saves time. The profits vary though, some days are great, others are just okay",
+    rating: 5,
+    emoji: "⏱️",
+    style: "text-lg"
+  },
+  {
+    text: "All great",
+    rating: 5,
+    emoji: "✅",
+    style: "text-xl font-medium"
+  }
+];
+
+const snipes = [
+  {
+    src: '/snipes/1.jpg',
+    price: '10,500',
+    caption: 'Perfect snipe at an ideal price — instant profit'
+  },
+  {
+    src: '/snipes/2.jpg',
+    price: '850',
+    caption: 'Fast snipe at a minimal cost — golden opportunity'
+  },
+  {
+    src: '/snipes/3.jpg',
+    price: '16,000',
+    caption: 'Great catch — excellent price for the value'
+  },
+  {
+    src: '/snipes/4.jpg',
+    price: '850',
+    caption: 'Rare pickup — low cost, high return'
   }
 ];
 
@@ -101,6 +144,10 @@ const faqs = [
     answer: "FUTBot uses advanced security measures including human-like trading patterns and rate limiting to keep your account safe. We've had zero bans in our operation."
   },
   {
+    question: "Does FUTBot help with SBCs?",
+    answer: "Yes, our SBC Solver automatically finds solutions for any challenge, helping you save time."
+  },
+  {
     question: "What's the average daily profit?",
     answer: "Most users earn between 200,000 to 500,000 coins daily, depending on market conditions and trading settings."
   },
@@ -121,9 +168,12 @@ const faqs = [
 export default function LandingPage() {
   console.log('LandingPage component is rendering...');
   const { user } = useAuth();
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState(0);
   const [activeTestimonialIndex, setActiveTestimonialIndex] = useState(0);
   const [isAutoplay, setIsAutoplay] = useState(true);
+  const [activeSnipeIndex, setActiveSnipeIndex] = useState(0);
+  const [isSnipesAutoplay, setIsSnipesAutoplay] = useState(true);
   const { scrollYProgress } = useScroll();
   const backgroundY = useTransform(scrollYProgress, [0, 1], ['0%', '50%']);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -145,6 +195,14 @@ export default function LandingPage() {
 
     return () => clearInterval(interval);
   }, [isAutoplay]);
+
+  useEffect(() => {
+    if (!isSnipesAutoplay) return;
+    const interval = setInterval(() => {
+      setActiveSnipeIndex((prev) => (prev + 1) % snipes.length);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [isSnipesAutoplay]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -269,8 +327,8 @@ export default function LandingPage() {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <h2 className="text-4xl font-bold text-white mb-4">What Our Users Say</h2>
-          <p className="text-xl text-gray-400">Real experiences from real traders</p>
+          <h2 className="text-4xl font-bold text-white mb-4">{t('testimonials.title')}</h2>
+          <p className="text-xl text-gray-400">{t('testimonials.subtitle')}</p>
         </motion.div>
 
         <div className="relative">
@@ -283,9 +341,9 @@ export default function LandingPage() {
               transition={{ duration: 0.5 }}
               className="flex flex-col items-center"
             >
-              <div className="text-6xl mb-6 animate-bounce">{testimonials[activeTestimonialIndex].emoji}</div>
+              <div className="text-6xl mb-6">{testimonials[activeTestimonialIndex].emoji}</div>
               <div className="bg-futbot-surface p-8 rounded-2xl border border-futbot-primary/20 max-w-2xl mx-auto
-                          transform hover:scale-105 transition-all duration-300">
+                          transition-all duration-300">
                 <div className="flex justify-center mb-4">
                   {[...Array(testimonials[activeTestimonialIndex].rating)].map((_, i) => (
                     <Star key={i} className="w-6 h-6 text-yellow-400 fill-current" />
@@ -313,6 +371,70 @@ export default function LandingPage() {
                 }`}
               />
             ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+
+  const WeeklySnipesSection = () => (
+    <section className="relative py-16 bg-futbot-surface/30 overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-10"
+        >
+          <h2 className="text-4xl font-bold text-white mb-3">{t('snipes.title')}</h2>
+          <p className="text-lg text-gray-400">{t('snipes.subtitle')}</p>
+        </motion.div>
+
+        <div className="relative flex flex-col items-center">
+          <div className="relative w-full flex flex-col items-center">
+            <div className="relative bg-futbot-surface p-4 rounded-2xl border border-futbot-primary/20 shadow-lg w-full max-w-lg h-[420px]">
+              {snipes.map((item, index) => (
+                <motion.img
+                  key={item.src}
+                  src={item.src}
+                  alt="Snipe proof"
+                  className="absolute inset-0 w-full h-full rounded-xl object-contain"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: index === activeSnipeIndex ? 1 : 0 }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                  style={{ pointerEvents: 'none' }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-center gap-4 mt-8">
+            <button
+              aria-label="Previous"
+              onClick={() => { setActiveSnipeIndex((activeSnipeIndex - 1 + snipes.length) % snipes.length); setIsSnipesAutoplay(false); }}
+              className="p-2 rounded-lg bg-futbot-primary/10 border border-futbot-primary/30 hover:bg-futbot-primary/20 transition"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <div className="flex gap-2">
+              {snipes.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => { setActiveSnipeIndex(index); setIsSnipesAutoplay(false); }}
+                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                    index === activeSnipeIndex ? 'bg-futbot-primary scale-125' : 'bg-futbot-primary/30 hover:bg-futbot-primary/50'
+                  }`}
+                  aria-label={`Go to snipe ${index + 1}`}
+                />
+              ))}
+            </div>
+            <button
+              aria-label="Next"
+              onClick={() => { setActiveSnipeIndex((activeSnipeIndex + 1) % snipes.length); setIsSnipesAutoplay(false); }}
+              className="p-2 rounded-lg bg-futbot-primary/10 border border-futbot-primary/30 hover:bg-futbot-primary/20 transition"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </div>
@@ -347,16 +469,19 @@ export default function LandingPage() {
                 animate={{ opacity: 1, x: 0 }}
                 className="flex items-center space-x-6"
               >
+                <LanguageSwitcher />
                 <a
                   href={CHROME_EXTENSION_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-6 py-3 rounded-lg bg-futbot-primary/10 border border-futbot-primary/30 
-                           hover:bg-futbot-primary/20 hover:border-futbot-primary/50 transition-all duration-300
-                           text-white hover:text-futbot-accent flex items-center space-x-2"
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg
+                           bg-futbot-primary/10 border border-futbot-primary/30 text-white text-sm
+                           hover:bg-futbot-primary/15 hover:border-futbot-primary/40 hover:text-futbot-accent
+                           transition-colors duration-200"
+                  aria-label="Download FUTBot Chrome Extension"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Download Extension</span>
+                  <span className="font-semibold">{t('nav.download')}</span>
                 </a>
               </motion.div>
             </div>
@@ -394,7 +519,7 @@ export default function LandingPage() {
                 FUTBot
               </h1>
               <p className="text-2xl md:text-3xl text-futbot-accent font-light tracking-wider mb-6">
-                Sleep. Earn. Repeat.
+                {t('hero.subtitle')}
               </p>
             </motion.div>
 
@@ -411,7 +536,7 @@ export default function LandingPage() {
                          transition-all duration-300 transform hover:scale-105 inline-flex items-center"
               >
                 <Download className="w-5 h-5 mr-2" />
-                <span>Subscribe Now</span>
+                <span>{t('hero.cta')}</span>
               </button>
             </motion.div>
           </motion.div>
@@ -427,10 +552,10 @@ export default function LandingPage() {
             className="text-center space-y-8"
           >
             <h2 className="text-3xl md:text-4xl font-bold text-futbot-accent">
-              Why Buy Coins When You Can Earn Them Yourself? 🔥
+              {t('why.heading')}
             </h2>
             <p className="text-lg md:text-xl text-gray-300 max-w-4xl mx-auto leading-relaxed">
-              4 years, no bans, and the most secure FIFA trading bot out there! FUTBot runs 24/7, letting you build your dream team while you sleep. Why spend on coins when you can earn them on your own in no time? We know the grind because we're players just like you, still using FUTBot to level up our teams. Don't miss out—subscribe now and unlock the easiest way to trade, earn, and win!
+              {t('why.paragraph')}
             </p>
           </motion.div>
         </div>
@@ -496,6 +621,10 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <TestimonialsSection />
+
+      <WeeklySnipesSection />
+
       <section className="relative py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
@@ -504,8 +633,8 @@ export default function LandingPage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-4xl font-bold text-white mb-4">Frequently Asked Questions</h2>
-            <p className="text-xl text-gray-400">Everything you need to know about FUTBot</p>
+            <h2 className="text-4xl font-bold text-white mb-4">{t('faq.title')}</h2>
+            <p className="text-xl text-gray-400">{t('faq.subtitle')}</p>
           </motion.div>
 
           <div className="space-y-4">

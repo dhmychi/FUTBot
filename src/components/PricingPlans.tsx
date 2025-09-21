@@ -3,6 +3,7 @@ import { Shield, Settings, Zap, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { SubscriptionPlan } from '../types/subscription';
 import { motion } from 'framer-motion';
+import { useI18n } from '../contexts/I18nContext';
 import PaymentModal from './PaymentModal';
 
 const features = [
@@ -41,7 +42,8 @@ const plans: SubscriptionPlan[] = [
       '🤖 24/7 Automated Trading',
       '🎮 Easy Control Panel',
       '🔄 Free Updates',
-      '💬 Premium Support'
+      '💬 Premium Support',
+      '🧩 SBC Solver'
     ],
   },
   {
@@ -58,6 +60,7 @@ const plans: SubscriptionPlan[] = [
       '🎮 Easy Control Panel',
       '🔄 Free Updates',
       '💬 Premium Support',
+      '🧩 SBC Solver',
       '💎 Priority Support'
     ],
   },
@@ -74,6 +77,7 @@ const plans: SubscriptionPlan[] = [
       '🎮 Easy Control Panel',
       '🔄 Free Updates',
       '💬 Premium Support',
+      '🧩 SBC Solver',
       '🎁 Exclusive Features',
       '🔒 Priority Support'
     ],
@@ -86,6 +90,7 @@ interface PricingPlansProps {
 }
 
 export default function PricingPlans({ onSelectPlan, plansRef }: PricingPlansProps) {
+  const { t } = useI18n();
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
@@ -124,8 +129,8 @@ export default function PricingPlans({ onSelectPlan, plansRef }: PricingPlansPro
         viewport={{ once: true }}
         className="text-center mb-16"
       >
-        <h2 className="text-4xl font-bold text-glow mb-6">Choose Your Plan</h2>
-        <p className="text-xl text-gray-400 mb-12">Start earning with FUTBot today</p>
+        <h2 className="text-4xl font-bold text-glow mb-6">{t('pricing.choose')}</h2>
+        <p className="text-xl text-gray-400 mb-12">{t('pricing.start')}</p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
           {features.map((feature, index) => (
@@ -177,22 +182,22 @@ export default function PricingPlans({ onSelectPlan, plansRef }: PricingPlansPro
                     <span className="text-4xl font-bold bg-gradient-to-r from-futbot-primary to-blue-400 bg-clip-text text-transparent">
                       ${plan.price}
                     </span>
-                    <span className="text-lg text-gray-400 mb-1">/month</span>
+                    <span className="text-lg text-gray-400 mb-1">{t('pricing.perMonth')}</span>
                   </div>
                   
                   {/* Total Price and Savings */}
                   {plan.id !== '1_month' && (
                     <div className="mt-3 text-center space-y-1">
                       <div className="text-sm text-gray-400">
-                        Total: <span className="text-white font-semibold">${plan.totalPrice}</span>
+                        {t('pricing.total')} <span className="text-white font-semibold">${plan.totalPrice}</span>
                       </div>
                       {calculateSavings(plan) > 0 && (
                         <div className="flex items-center justify-center space-x-2">
                           <span className="text-xs text-gray-500 line-through">
-                            ${15 * (plan.id === '3_months' ? 3 : 12)} regular price
+                            ${15 * (plan.id === '3_months' ? 3 : 12)} {t('pricing.regular')}
                           </span>
                           <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full font-medium">
-                            Save ${calculateSavings(plan).toFixed(2)} ({getDiscountPercentage(plan)}% off)
+                            {t('pricing.save', { amount: calculateSavings(plan).toFixed(2), percent: getDiscountPercentage(plan) })}
                           </span>
                         </div>
                       )}
@@ -203,7 +208,7 @@ export default function PricingPlans({ onSelectPlan, plansRef }: PricingPlansPro
                   {plan.id === '1_month' && (
                     <div className="mt-3 text-center">
                       <div className="text-sm text-gray-400">
-                        Total: <span className="text-white font-semibold">${plan.totalPrice}</span>
+                        {t('pricing.total')} <span className="text-white font-semibold">${plan.totalPrice}</span>
                       </div>
                     </div>
                   )}
@@ -235,7 +240,7 @@ export default function PricingPlans({ onSelectPlan, plansRef }: PricingPlansPro
                     alt="PayPal" 
                     className="h-5"
                   />
-                  <span className="font-bold">Subscribe Now</span>
+                  <span className="font-bold">{t('pricing.subscribe')}</span>
                 </button>
               </div>
             </div>
