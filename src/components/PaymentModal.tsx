@@ -182,6 +182,19 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
       setShowSuccess(true);
       toast.success('Payment successful! Welcome to FUTBot.');
       
+      // Mandatory redirect to success page with saved credentials
+      try {
+        localStorage.setItem('futbot:purchase', JSON.stringify({
+          email: userEmail,
+          accessCode: accessCode,
+          paymentId: details.id,
+          planId: plan.id,
+          ts: Date.now()
+        }));
+      } catch {}
+      const url = `/subscription/success?orderId=${encodeURIComponent(details.id || '')}&plan=${encodeURIComponent(plan.id)}`;
+      window.location.assign(url);
+      
     } catch (error) {
       console.error('Payment approval error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Payment processing failed';
