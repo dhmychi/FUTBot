@@ -13,7 +13,8 @@ const TermsPage: React.FC = () => (
 
       <h2 className="text-xl font-semibold text-white">Acceptable Use</h2>
       <ul className="list-disc pl-6 space-y-2">
-        <li>Use the tools solely for analysis, planning, and SBC solution guidance.</li>
+        <li>Use the tools solely for lawful analysis, planning, and SBC solution guidance.</li>
+        <li>No exploitation, manipulation, or circumvention of any third-party systems.</li>
         <li>Do not use the service in any manner that breaches third-party terms (including EA policies).</li>
         <li>Do not attempt to reverse engineer, abuse, or disrupt the service.</li>
       </ul>
@@ -33,8 +34,9 @@ const TermsPage: React.FC = () => (
 
       <h2 className="text-xl font-semibold text-white">Limitation of Liability</h2>
       <p>
-        Futbotclub is provided on an "as is" basis. To the maximum extent permitted by law, we are
-        not liable for indirect or consequential losses arising from your use of the tools.
+        Futbotclub is provided on an "as is" basis. To the maximum extent permitted by law, we are not
+        liable for indirect or consequential losses. Users are solely responsible for lawful use and
+        adherence to applicable third-party terms.
       </p>
 
       <h2 className="text-xl font-semibold text-white">Contact</h2>
