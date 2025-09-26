@@ -95,8 +95,12 @@ export default function PricingPlans({ onSelectPlan, plansRef }: PricingPlansPro
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   const handlePlanSelect = (plan: SubscriptionPlan) => {
-    setSelectedPlan(plan);
-    setIsPaymentModalOpen(true);
+    // Override: subscribe via email instead of opening payment modal
+    const subject = encodeURIComponent(`Subscribe to FUTBot - ${plan.name}`);
+    const body = encodeURIComponent(
+      `Hello,\n\nI would like to subscribe to FUTBot (${plan.name}).\nPlan ID: ${plan.id}\nTotal: $${plan.totalPrice}\n\nPlease reply with the next steps.\n\nThanks!`
+    );
+    window.location.href = `mailto:futbott97@gmail.com?subject=${subject}&body=${body}`;
   };
 
   const calculateSavings = (plan: SubscriptionPlan) => {
@@ -235,12 +239,7 @@ export default function PricingPlans({ onSelectPlan, plansRef }: PricingPlansPro
                       : 'bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 text-gray-200 hover:shadow-lg'
                   }`}
                 >
-                  <img 
-                    src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" 
-                    alt="PayPal" 
-                    className="h-5"
-                  />
-                  <span className="font-bold">{t('pricing.subscribe')}</span>
+                  <span className="font-bold">Subscribe via Email</span>
                 </button>
               </div>
             </div>

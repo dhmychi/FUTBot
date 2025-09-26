@@ -4,6 +4,7 @@ import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { HelmetProvider } from 'react-helmet-async';
 import LandingPage from './pages/LandingPage';
 import SimpleLandingPage from './pages/SimpleLandingPage';
+import HomeFacade from './pages/HomeFacade';
 import Register from './pages/Register';
 import TermsPage from './pages/Terms';
 import PrivacyPage from './pages/Privacy';
@@ -39,7 +40,7 @@ function App() {
           <AuthProvider>
             <BrowserRouter>
               <Routes>
-                <Route path="/" element={<SimpleLandingPage />} />
+                <Route path="/" element={<HomeFacade />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />

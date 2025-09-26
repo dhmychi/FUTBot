@@ -144,7 +144,7 @@
     </script>
     <meta name="google-site-verification" content="JZCBbaE4M_6qAwV71-etsGNXTBzhPZyKNeAlwu_wrkA" />
     
-    <!-- Maintenance Styles (lightweight, clean) -->
+    <!-- App Styles (lightweight container + base) -->
     <style>
       :root { 
         --primary: #4169E1; 
@@ -162,46 +162,11 @@
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
       }
-      .maintenance-wrapper {
-        min-height: 100dvh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 24px;
-        position: relative;
-        overflow: hidden;
-      }
-      .maintenance-card {
-        width: 100%;
-        max-width: 560px;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(65, 105, 225, 0.25);
-        border-radius: 16px;
-        padding: 24px;
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
-      }
-      .logo-large { width: 96px; height: 96px; border-radius: 16px; display: block; margin: 0 auto 12px; }
-      h1 { 
-        margin: 8px 0 8px; 
-        text-align: center;
-        font-size: clamp(26px, 4vw, 36px);
-        line-height: 1.15;
-      }
-      p.lead { margin: 0 0 12px; color: var(--muted); text-align: center; font-size: 15px; }
-      .contact-line { text-align: center; margin-top: 8px; color: #cfd6e6; }
-      .link { color: var(--text); text-decoration: none; border-bottom: 1px dashed rgba(65,105,225,0.6); }
-      .link:hover { color: #ffffff; border-bottom-color: var(--primary); }
+      #root { min-height: 100dvh; }
     </style>
   </head>
   <body>
-    <div class="maintenance-wrapper" dir="ltr">
-      <div class="maintenance-card">
-        <img class="logo-large" src="./wolf-logo.png" alt="FUTBot Logo" />
-        <h1>We’re performing maintenance</h1>
-        <p class="lead">We’re upgrading the site to improve your experience. Back soon.</p>
-        <p class="contact-line">Contact: <a class="link" href="mailto:futbott97@gmail.com">futbott97@gmail.com</a></p>
-      </div>
-    </div>
+    <div id="root"></div>
     <script>
       // Fallback error handling
       window.addEventListener('error', function(event) {
@@ -219,5 +184,6 @@
         }
       });
     </script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
