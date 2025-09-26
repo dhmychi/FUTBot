@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { HelmetProvider } from 'react-helmet-async';
 import LandingPage from './pages/LandingPage';
+import SimpleLandingPage from './pages/SimpleLandingPage';
 import Register from './pages/Register';
 import TermsPage from './pages/Terms';
 import PrivacyPage from './pages/Privacy';
@@ -38,7 +39,7 @@ function App() {
           <AuthProvider>
             <BrowserRouter>
               <Routes>
-                <Route path="/" element={<LandingPage />} />
+                <Route path="/" element={<SimpleLandingPage />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
