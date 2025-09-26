@@ -15,14 +15,14 @@ export default function HomeFacade() {
           </div>
 
           <h1 className="text-5xl md:text-6xl font-black mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-futbot-accent">
-            FUTBot
+            FUT SB
           </h1>
           <p className="text-xl md:text-2xl text-futbot-accent font-light tracking-wide">
-            Ultra-fast autobuyer and sniping bot for EA FC 26
+            Smart trading tools and SBC solutions for EA FC 26
           </p>
 
           <p className="mt-6 max-w-3xl mx-auto text-gray-300">
-            Trade smarter with automation. Clean interface, powerful engine, and consistent results. No clutter — just what you need to win the market.
+            Trade smarter with clear insights and streamlined tools. Clean interface, powerful features, and consistent results to help you navigate the market confidently.
           </p>
 
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">

@@ -9,23 +9,23 @@ import PaymentModal from './PaymentModal';
 const features = [
   {
     icon: Shield,
-    title: 'Secure Account',
-    description: 'Complete protection with advanced security system'
+    title: 'Secure Access',
+    description: 'Data protection and safe account management'
   },
   {
     icon: Settings,
     title: 'Easy Setup',
-    description: 'Simple interface and quick start process'
+    description: 'Simple interface and quick onboarding'
   },
   {
     icon: Zap,
     title: 'Clear Controls',
-    description: 'Full control over all settings with intuitive interface'
+    description: 'Intuitive tools and configurable preferences'
   },
   {
     icon: Clock,
-    title: '24/7 Operation',
-    description: 'Automated trading around the clock for maximum profit'
+    title: 'Always Available',
+    description: 'Use the tools whenever you need them'
   }
 ];
 
@@ -38,8 +38,8 @@ const plans: SubscriptionPlan[] = [
     totalPrice: 15,
     duration: '1 month',
     features: [
-      '⚡ Instant Activation',
-      '🤖 24/7 Automated Trading',
+      '⚡ Instant Access',
+      '📊 Helpful Market Insights',
       '🎮 Easy Control Panel',
       '🔄 Free Updates',
       '💬 Premium Support',
@@ -55,8 +55,8 @@ const plans: SubscriptionPlan[] = [
     duration: '3 months',
     popular: true,
     features: [
-      '⚡ Instant Activation',
-      '🤖 24/7 Automated Trading',
+      '⚡ Instant Access',
+      '📊 Helpful Market Insights',
       '🎮 Easy Control Panel',
       '🔄 Free Updates',
       '💬 Premium Support',
@@ -72,8 +72,8 @@ const plans: SubscriptionPlan[] = [
     totalPrice: 49.99,
     duration: '12 months',
     features: [
-      '⚡ Instant Activation',
-      '🤖 24/7 Automated Trading',
+      '⚡ Instant Access',
+      '📊 Helpful Market Insights',
       '🎮 Easy Control Panel',
       '🔄 Free Updates',
       '💬 Premium Support',
