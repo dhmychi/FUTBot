@@ -47,6 +47,23 @@ export default function HomeFacade() {
           <PricingPlans onSelectPlan={() => { /* overridden in component to email */ }} />
         </div>
       </section>
+
+      <footer className="relative bg-futbot-darker py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="flex items-center space-x-3 mb-4 md:mb-0">
+              <WolfLogo className="w-8 h-8" />
+              <span className="text-xl font-bold text-white">Futbotclub</span>
+            </div>
+            <div className="flex space-x-6 mb-4 md:mb-0">
+              <a href="/terms" className="text-gray-400 hover:text-white transition">Terms of Service</a>
+              <a href="/privacy" className="text-gray-400 hover:text-white transition">Privacy Policy</a>
+              <a href="/refund" className="text-gray-400 hover:text-white transition">Refund Policy</a>
+            </div>
+            <p className="text-gray-500">© {new Date().getFullYear()} Futbotclub. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
