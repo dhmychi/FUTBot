@@ -96,7 +96,7 @@ export default function PricingPlans({ onSelectPlan, plansRef }: PricingPlansPro
 
   const handlePlanSelect = (plan: SubscriptionPlan) => {
     // Override: subscribe via email instead of opening payment modal
-    const subject = encodeURIComponent(`Subscribe to FUTBot - ${plan.name}`);
+    const subject = encodeURIComponent(`Subscribe to Futbotclub - ${plan.name}`);
     const body = encodeURIComponent(
       `Hello,\n\nI would like to subscribe to FUTBot (${plan.name}).\nPlan ID: ${plan.id}\nTotal: $${plan.totalPrice}\n\nPlease reply with the next steps.\n\nThanks!`
     );

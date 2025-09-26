@@ -15,7 +15,7 @@ export default function HomeFacade() {
           </div>
 
           <h1 className="text-5xl md:text-6xl font-black mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-futbot-accent">
-            FUT SB
+            Futbotclub
           </h1>
           <p className="text-xl md:text-2xl text-futbot-accent font-light tracking-wide">
             Smart trading tools and SBC solutions for EA FC 26
@@ -27,7 +27,7 @@ export default function HomeFacade() {
 
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <a
-              href="mailto:futbott97@gmail.com?subject=Subscribe%20to%20FUTBot&body=Hello%2C%20I%27d%20like%20to%20subscribe%20to%20FUTBot."
+              href="mailto:futbott97@gmail.com?subject=Subscribe%20to%20Futbotclub&body=Hello%2C%20I%27d%20like%20to%20subscribe%20to%20Futbotclub."
               className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-futbot-primary hover:bg-blue-600 transition-colors font-semibold"
             >
               Subscribe via Email
