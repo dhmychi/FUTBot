@@ -29,7 +29,7 @@ export default function SimpleLandingPage() {
             <span className="font-semibold">Get Chrome Extension</span>
           </a>
           <a
-            href="mailto:info@futbot.club"
+            href="mailto:contact@futbot.club"
             className="inline-flex items-center gap-2 px-5 py-3 rounded-lg border border-white/20 hover:border-white/35 bg-white/5 hover:bg-white/10 transition-colors"
           >
             Contact Support

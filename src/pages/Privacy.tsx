@@ -27,7 +27,7 @@ const PrivacyPage: React.FC = () => (
 
       <h2 className="text-xl font-semibold text-white">Contact</h2>
       <p>
-        For privacy requests, contact <a className="text-blue-400" href="mailto:info@futbot.club">info@futbot.club</a>.
+        For privacy requests, contact <a className="text-blue-400" href="mailto:contact@futbot.club">contact@futbot.club</a>.
       </p>
     </div>
   </div>
