@@ -100,7 +100,7 @@ export default function PricingPlans({ onSelectPlan, plansRef }: PricingPlansPro
     const body = encodeURIComponent(
       `Hello,\n\nI would like to subscribe to FUTBot (${plan.name}).\nPlan ID: ${plan.id}\nTotal: $${plan.totalPrice}\n\nPlease reply with the next steps.\n\nThanks!`
     );
-    window.location.href = `mailto:futbott97@gmail.com?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:info@futbot.club?subject=${subject}&body=${body}`;
   };
 
   const calculateSavings = (plan: SubscriptionPlan) => {

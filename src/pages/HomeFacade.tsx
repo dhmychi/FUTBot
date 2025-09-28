@@ -27,16 +27,16 @@ export default function HomeFacade() {
 
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <a
-              href="mailto:futbott97@gmail.com?subject=Subscribe%20to%20Futbotclub&body=Hello%2C%20I%27d%20like%20to%20subscribe%20to%20Futbotclub."
+              href="mailto:info@futbot.club?subject=Subscribe%20to%20Futbotclub&body=Hello%2C%20I%27d%20like%20to%20subscribe%20to%20Futbotclub."
               className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-futbot-primary hover:bg-blue-600 transition-colors font-semibold"
             >
               Subscribe via Email
             </a>
             <a
-              href="mailto:futbott97@gmail.com"
+              href="mailto:info@futbot.club"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-white/20 hover:border-white/35 bg-white/5 hover:bg-white/10 transition-colors"
             >
-              futbott97@gmail.com
+              info@futbot.club
             </a>
           </div>
         </div>

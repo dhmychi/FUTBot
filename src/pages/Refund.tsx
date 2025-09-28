@@ -19,7 +19,7 @@ const RefundPage: React.FC = () => (
 
       <h2 className="text-xl font-semibold text-white">How to Request</h2>
       <p>
-        To request a refund review, contact <a className="text-blue-400" href="mailto:futbott97@gmail.com">futbott97@gmail.com</a> with your order information and an explanation of the issue.
+        To request a refund review, contact <a className="text-blue-400" href="mailto:info@futbot.club">info@futbot.club</a> with your order information and an explanation of the issue.
       </p>
     </div>
   </div>

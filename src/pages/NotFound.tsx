@@ -247,10 +247,10 @@ export default function NotFound() {
           <p className="mt-2 text-sm">
             تحتاج مساعدة؟ راسلنا على{' '}
             <a 
-              href="mailto:futbott97@gmail.com" 
+              href="mailto:info@futbot.club" 
               className="text-futbot-primary hover:text-futbot-accent transition-colors"
             >
-              futbott97@gmail.com
+              info@futbot.club
             </a>
           </p>
         </motion.div>

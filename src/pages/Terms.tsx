@@ -41,7 +41,7 @@ const TermsPage: React.FC = () => (
 
       <h2 className="text-xl font-semibold text-white">Contact</h2>
       <p>
-        For questions about these Terms, contact us at <a className="text-blue-400" href="mailto:futbott97@gmail.com">futbott97@gmail.com</a>.
+        For questions about these Terms, contact us at <a className="text-blue-400" href="mailto:info@futbot.club">info@futbot.club</a>.
       </p>
     </div>
   </div>
