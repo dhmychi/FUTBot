@@ -16,7 +16,7 @@ export default function SimpleLandingPage() {
         </div>
         <h1 className="text-4xl font-extrabold tracking-tight">FUTBot</h1>
         <p className="mt-3 text-lg text-gray-300">
-          Ultra-fast autobuyer and sniping bot for EA FC 26. Clean, reliable, and powerful.
+          Squad planner and SBC solutions for EA FC 26. Clean, reliable, and helpful.
         </p>
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
           <a
@@ -38,16 +38,16 @@ export default function SimpleLandingPage() {
 
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
           <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-            <div className="text-white font-semibold">Ultra Fast</div>
-            <div className="text-gray-400">Millisecond snipes</div>
+            <div className="text-white font-semibold">Fast & Simple</div>
+            <div className="text-gray-400">Smooth experience</div>
           </div>
           <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-            <div className="text-white font-semibold">300K+/day</div>
-            <div className="text-gray-400">Average profits</div>
+            <div className="text-white font-semibold">Clear Guidance</div>
+            <div className="text-gray-400">Helpful suggestions</div>
           </div>
           <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-            <div className="text-white font-semibold">Zero Bans</div>
-            <div className="text-gray-400">Safe patterns</div>
+            <div className="text-white font-semibold">Safe & Compliant</div>
+            <div className="text-gray-400">Legal use only</div>
           </div>
         </div>
 

@@ -18,11 +18,11 @@ export default function HomeFacade() {
             Futbotclub
           </h1>
           <p className="text-xl md:text-2xl text-futbot-accent font-light tracking-wide">
-            Smart trading tools and SBC solutions for EA FC 26
+            Squad planner and SBC solutions for EA FC 26
           </p>
 
           <p className="mt-6 max-w-3xl mx-auto text-gray-300">
-            Trade smarter with clear insights and streamlined tools. Clean interface, powerful features, and consistent results to help you navigate the market confidently.
+            Build smarter squads with clear guidance and streamlined tools. Clean interface and useful features to help you plan confidently.
           </p>
 
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">

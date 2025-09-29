@@ -39,7 +39,7 @@ const plans: SubscriptionPlan[] = [
     duration: '1 month',
     features: [
       '⚡ Instant Access',
-      '📊 Helpful Market Insights',
+      '📘 Helpful SBC Guidance',
       '🎮 Easy Control Panel',
       '🔄 Free Updates',
       '💬 Premium Support',
@@ -56,7 +56,7 @@ const plans: SubscriptionPlan[] = [
     popular: true,
     features: [
       '⚡ Instant Access',
-      '📊 Helpful Market Insights',
+      '📘 Helpful SBC Guidance',
       '🎮 Easy Control Panel',
       '🔄 Free Updates',
       '💬 Premium Support',
@@ -73,7 +73,7 @@ const plans: SubscriptionPlan[] = [
     duration: '12 months',
     features: [
       '⚡ Instant Access',
-      '📊 Helpful Market Insights',
+      '📘 Helpful SBC Guidance',
       '🎮 Easy Control Panel',
       '🔄 Free Updates',
       '💬 Premium Support',
