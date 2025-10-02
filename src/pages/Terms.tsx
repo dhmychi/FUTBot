@@ -5,10 +5,18 @@ const TermsPage: React.FC = () => (
     <h1 className="text-3xl font-bold mb-6">Terms of Service</h1>
     <div className="space-y-5 text-gray-300">
       <p>
-        These Terms of Service ("Terms") govern your use of Futbotclub’s website and tools. Our
-        services provide market insights, SBC (Squad Building Challenge) solutions, and utility
-        features intended to assist players in planning and building squads. We do not provide or
-        endorse any functionality that violates game terms or automates in-game actions.
+        These Terms of Service ("Terms") govern your use of futbclub's website and tools 
+        operating under the brand "Futbotclub". Our services provide market insights, 
+        SBC (Squad Building Challenge) solutions, and utility features intended to assist 
+        players in planning and building squads. We do not provide or endorse any 
+        functionality that violates game terms or automates in-game actions.
+      </p>
+
+      <h2 className="text-xl font-semibold text-white">Company Information</h2>
+      <p>
+        Business Name: futbclub<br/>
+        Brand Name: Futbotclub<br/>
+        Contact: <a className="text-blue-400" href="mailto:contact@futbot.club">contact@futbot.club</a>
       </p>
 
       <h2 className="text-xl font-semibold text-white">Acceptable Use</h2>
@@ -21,7 +29,7 @@ const TermsPage: React.FC = () => (
 
       <h2 className="text-xl font-semibold text-white">No Affiliation</h2>
       <p>
-        Futbotclub is an independent platform and is not affiliated with, endorsed by, or sponsored
+        futbclub (Futbotclub) is an independent platform and is not affiliated with, endorsed by, or sponsored
         by EA Sports, Electronic Arts, or any related entity. All trademarks belong to their
         respective owners.
       </p>
@@ -34,7 +42,7 @@ const TermsPage: React.FC = () => (
 
       <h2 className="text-xl font-semibold text-white">Limitation of Liability</h2>
       <p>
-        Futbotclub is provided on an "as is" basis. To the maximum extent permitted by law, we are not
+        futbclub (Futbotclub) is provided on an "as is" basis. To the maximum extent permitted by law, we are not
         liable for indirect or consequential losses. Users are solely responsible for lawful use and
         adherence to applicable third-party terms.
       </p>
