@@ -27,7 +27,7 @@ const RefundPage: React.FC = () => (
 
       <h2 className="text-xl font-semibold text-white">How to Request</h2>
       <p>
-        To request a refund, contact <a className="text-blue-400" href="mailto:contact@futbot.club">contact@futbot.club</a> 
+        To request a refund, contact <a className="text-blue-400" href="mailto:contact@futbot.club">contact@futbot.club</a>{" "}
         within 14 days of purchase with your order information and reason for the refund request.
         Refunds will be processed within 1-5 business days to your original payment method.
       </p>
