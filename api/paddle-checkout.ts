@@ -73,7 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const response = await axios.post(`${baseUrl}/transactions`, payload, {
       headers: {
-        Authorization: paddleToken,
+        Authorization: `Bearer ${paddleToken}`,
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
