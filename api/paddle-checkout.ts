@@ -35,8 +35,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ],
       customer: { email },
       custom_data: { planId, email, accessCode },
-      success_url: `${appUrl}/subscription/success?plan=${encodeURIComponent(planId)}`,
-      cancel_url: `${appUrl}/payment/cancel`,
+      settings: {
+        success_url: `${appUrl}/subscription/success?plan=${encodeURIComponent(planId)}`,
+        cancel_url: `${appUrl}/payment/cancel`,
+      },
     };
 
     console.log('Creating Billing checkout session at:', `${baseUrl}/v1/checkout/sessions`);
