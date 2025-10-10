@@ -15,37 +15,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!planId || !email || !accessCode) return res.status(400).json({ error: 'Missing required fields' });
     if (planId !== '1_month') return res.status(400).json({ error: 'Only 1_month plan is enabled' });
 
-    // Classic Vendors API variables
-    const vendorId = process.env.PADDLE_VENDOR_ID;
-    const vendorAuthCode = process.env.PADDLE_VENDOR_AUTH_CODE;
-    const productId = process.env.PADDLE_PRODUCT_ID_1_MONTH; // Classic numeric product_id
+    // Billing API (2025): Checkout Sessions
+    const paddleToken = process.env.PADDLE_TOKEN;
+    const priceId = process.env.PADDLE_PRICE_ID_1_MONTH;
     const appUrl = process.env.VITE_APP_URL || 'https://www.futbot.club';
-
-    if (!vendorId || !vendorAuthCode || !productId) {
-      return res.status(500).json({ error: 'Paddle Classic env not configured (PADDLE_VENDOR_ID, PADDLE_VENDOR_AUTH_CODE, PADDLE_PRODUCT_ID_1_MONTH)' });
+    if (!paddleToken || !priceId) {
+      return res.status(500).json({ error: 'Paddle Billing env not configured (PADDLE_TOKEN, PADDLE_PRICE_ID_1_MONTH)' });
     }
 
-    const payload = qs.stringify({
-      vendor_id: vendorId,
-      vendor_auth_code: vendorAuthCode,
-      product_id: productId,
-      quantity: 1,
+    const env = (process.env.PADDLE_ENV || 'sandbox').toLowerCase();
+    const baseUrl = env === 'live' ? 'https://api.paddle.com' : 'https://sandbox-api.paddle.com';
+
+    const payload = {
+      items: [
+        {
+          price_id: priceId,
+          quantity: 1,
+        },
+      ],
       customer_email: email,
-      passthrough: JSON.stringify({ planId, email, accessCode }),
-      return_url: `${appUrl}/subscription/success?plan=${encodeURIComponent(planId)}`,
-    });
+      custom_data: { planId, email, accessCode },
+      success_url: `${appUrl}/subscription/success?plan=${encodeURIComponent(planId)}`,
+      cancel_url: `${appUrl}/payment/cancel`,
+    };
 
-    console.log('Making request to Paddle (Classic) with payload:', payload);
-
-    const response = await axios.post('https://sandbox-vendors.paddle.com/api/2.0/product/generate_pay_link', payload, {
+    console.log('Creating Billing checkout session at:', `${baseUrl}/v1/checkout/sessions`);
+    const response = await axios.post(`${baseUrl}/v1/checkout/sessions`, payload, {
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Bearer ${paddleToken}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
       },
     });
 
     console.log('Paddle response:', JSON.stringify(response.data, null, 2));
 
-    const checkoutUrl = response?.data?.response?.url || response?.data?.url || response?.data?.checkout_url;
+    const checkoutUrl = response?.data?.data?.url || response?.data?.data?.checkout_url || response?.data?.url;
     if (!checkoutUrl) {
       console.error('No checkout URL found in response:', response.data);
       return res.status(500).json({ error: 'Failed to create Paddle checkout', details: response.data });
