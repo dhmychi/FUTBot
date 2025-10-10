@@ -27,10 +27,10 @@ export default function HomeFacade() {
 
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <a
-              href="mailto:contact@futbot.club?subject=Subscribe%20to%20Futbotclub&body=Hello%2C%20I%27d%20like%20to%20subscribe%20to%20Futbotclub."
+              href="#pricing"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-futbot-primary hover:bg-blue-600 transition-colors font-semibold"
             >
-              Subscribe via Email
+              Choose Your Plan
             </a>
             <a
               href="mailto:contact@futbot.club"

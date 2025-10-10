@@ -95,12 +95,8 @@ export default function PricingPlans({ onSelectPlan, plansRef }: PricingPlansPro
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   const handlePlanSelect = (plan: SubscriptionPlan) => {
-    // Override: subscribe via email instead of opening payment modal
-    const subject = encodeURIComponent(`Subscribe to Futbotclub - ${plan.name}`);
-    const body = encodeURIComponent(
-      `Hello,\n\nI would like to subscribe to FUTBot (${plan.name}).\nPlan ID: ${plan.id}\nTotal: $${plan.totalPrice}\n\nPlease reply with the next steps.\n\nThanks!`
-    );
-    window.location.href = `mailto:contact@futbot.club?subject=${subject}&body=${body}`;
+    setSelectedPlan(plan);
+    setIsPaymentModalOpen(true);
   };
 
   const calculateSavings = (plan: SubscriptionPlan) => {
@@ -239,7 +235,7 @@ export default function PricingPlans({ onSelectPlan, plansRef }: PricingPlansPro
                       : 'bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 text-gray-200 hover:shadow-lg'
                   }`}
                 >
-                  <span className="font-bold">Subscribe via Email</span>
+                  <span className="font-bold">Continue</span>
                 </button>
               </div>
             </div>

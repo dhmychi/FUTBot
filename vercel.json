@@ -10,7 +10,12 @@
     "PAYPAL_ENVIRONMENT": "${PAYPAL_ENVIRONMENT}",
     "PAYPAL_WEBHOOK_ID": "${PAYPAL_WEBHOOK_ID}",
     "RESEND_API_KEY": "${RESEND_API_KEY}",
-    "FROM_EMAIL": "${FROM_EMAIL}"
+    "FROM_EMAIL": "${FROM_EMAIL}",
+    "PADDLE_ENV": "${PADDLE_ENV}",
+    "PADDLE_TOKEN": "${PADDLE_TOKEN}",
+    "PADDLE_WEBHOOK_SECRET": "${PADDLE_WEBHOOK_SECRET}",
+    "PADDLE_PRODUCT_ID_1_MONTH": "${PADDLE_PRODUCT_ID_1_MONTH}",
+    "PADDLE_PRICE_ID_1_MONTH": "${PADDLE_PRICE_ID_1_MONTH}"
   },
   "rewrites": [
     {
@@ -32,7 +37,7 @@
         },
         {
           "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization, X-Requested-With, Accept, X-CSRF-Token, Accept-Version, Content-Length, Content-MD5, Date, X-Api-Version, Paypal-Auth-Assertion, Paypal-Auth-Algo, Paypal-Cert-Url, Paypal-Transmission-Id, Paypal-Transmission-Sig, Paypal-Transmission-Time"
+          "value": "Content-Type, Authorization, X-Requested-With, Accept, X-CSRF-Token, Accept-Version, Content-Length, Content-MD5, Date, X-Api-Version, Paypal-Auth-Assertion, Paypal-Auth-Algo, Paypal-Cert-Url, Paypal-Transmission-Id, Paypal-Transmission-Sig, Paypal-Transmission-Time, Paddle-Signature"
         },
         {
           "key": "Access-Control-Allow-Credentials",

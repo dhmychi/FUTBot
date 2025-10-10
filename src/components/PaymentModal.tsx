@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { PayPalButtons } from '@paypal/react-paypal-js';
-import type { CreateOrderActions, OnApproveData, OnApproveActions } from '@paypal/paypal-js';
+// Replacing PayPal with Paddle checkout flow
 import toast from 'react-hot-toast';
 
 // Define PricingPlan interface
@@ -24,7 +23,6 @@ interface PaymentModalProps {
 export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: PaymentModalProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paypalError, setPaypalError] = useState('');
-  const [, setPaypalReady] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   // Access code the customer will use to log in (acts like password)
   const [accessCode, setAccessCode] = useState('');
@@ -36,7 +34,6 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
     if (isOpen) {
       setPaypalError('');
       setIsProcessing(false);
-      setPaypalReady(false);
       setShowUserForm(true);
       setUserEmail('');
       setAccessCode('');
@@ -61,208 +58,36 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
     setShowUserForm(false);
   };
 
-  const buttonStyle = {
-    layout: 'vertical' as const,
-    color: 'gold' as const,
-    shape: 'rect' as const,
-    label: 'pay' as const,
-    tagline: false,
-    height: 48
-  };
-
-  const handlePayPalPayment = useCallback(async (_data: Record<string, unknown>, actions: CreateOrderActions): Promise<string> => {
-    if (!actions.order) {
-      throw new Error('PayPal SDK not properly initialized');
-    }
-    
+  const handleStartPaddleCheckout = useCallback(async () => {
     try {
       setIsProcessing(true);
       setPaypalError('');
-      
-      console.log('Creating PayPal order...');
-      
-      // Simple PayPal order - minimal required fields only
-      const orderRequest: any = {
-        intent: 'CAPTURE',
-        purchase_units: [{
-          amount: {
-            currency_code: 'USD',
-            value: (plan.totalPrice || plan.price).toString()
-          },
-          description: `FUTBot ${plan.name} Plan`
-        }]
-      };
 
-      // Only set payer email if it looks valid
-      if (userEmail && userEmail.includes('@')) {
-        orderRequest.payer = { email_address: userEmail };
+      const apiBase = (import.meta as any).env?.VITE_API_BASE_URL || (location.hostname === 'localhost' ? 'https://www.futbot.club' : '');
+      const response = await fetch(`${apiBase}/api/paddle-create-checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId: plan.id, email: userEmail, accessCode }),
+      });
+
+      if (!response.ok) {
+        const msg = await response.text().catch(() => 'Failed to create checkout');
+        throw new Error(msg || `HTTP ${response.status}`);
       }
 
-      const order = await actions.order.create(orderRequest);
-      
-      console.log('PayPal order created successfully:', order);
-      return order;
-    } catch (error) {
-      console.error('Error creating PayPal order:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      
-      // Handle specific PayPal errors with better recovery
-      if (errorMessage.includes('Target window is closed')) {
-        setPaypalError('Payment window was closed unexpectedly. Please try again.');
-        toast.error('Payment window closed. Please try again.');
-      } else if (errorMessage.includes('popup') || errorMessage.includes('blocked')) {
-        setPaypalError('Popup blocked. Please allow popups and try again.');
-        toast.error('Popup blocked. Please allow popups and try again.');
-      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-        setPaypalError('Network error. Please check your connection and try again.');
-        toast.error('Network error. Please try again.');
-      } else if (errorMessage.includes('global_session_not_found')) {
-        setPaypalError('PayPal session expired. Please refresh the page and try again.');
-        toast.error('PayPal session expired. Please refresh and try again.');
-      } else {
-        setPaypalError(`Payment error: ${errorMessage}`);
-        toast.error(`Payment error: ${errorMessage}`);
-      }
-      
-      throw error;
+      const data = await response.json();
+      const checkoutUrl = data?.checkoutUrl;
+      if (!checkoutUrl) throw new Error('Invalid checkout URL');
+
+      window.location.assign(checkoutUrl);
+    } catch (error: any) {
+      const message = error?.message || 'Failed to start checkout';
+      setPaypalError(message);
+      toast.error(message);
     } finally {
       setIsProcessing(false);
     }
-  }, [plan, userEmail, accessCode]);
-
-  const handlePayPalApprove = useCallback(async (_data: OnApproveData, actions: OnApproveActions) => {
-    if (!actions.order) {
-      const errorMsg = 'Invalid order action';
-      setPaypalError(errorMsg);
-      toast.error(errorMsg);
-      setIsProcessing(false);
-      return;
-    }
-    
-    try {
-      setPaypalError('');
-      
-      // Capture the payment
-      const details = await actions.order.capture();
-      console.log('Payment completed successfully', details);
-      
-      // Create KeyAuth user immediately after payment
-      try {
-        console.log('🔄 Creating KeyAuth user after payment...');
-        const apiBase = (import.meta as any).env?.VITE_API_BASE_URL || (location.hostname === 'localhost' ? 'https://www.futbot.club' : '');
-        const response = await fetch(`${apiBase}/api/create-user-after-payment`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: userEmail,
-            accessCode: accessCode,
-            paymentId: details.id,
-            planId: plan.id,
-            amount: plan.totalPrice || plan.price
-          })
-        });
-        
-        if (response.ok) {
-          const result = await response.json();
-          console.log('✅ KeyAuth user created successfully:', result);
-          toast.success(`🎉 Account created successfully! Username: ${accessCode}`);
-        } else {
-          let errorText = '';
-          try { errorText = await response.text(); } catch {}
-          console.error('❌ Failed to create KeyAuth user:', errorText || response.status);
-          const message = errorText || `HTTP ${response.status}`;
-          toast.error(`Account setup failed: ${message}`);
-        }
-      } catch (error) {
-        console.error('❌ KeyAuth user creation error:', error);
-        toast.error('Payment successful, but account setup failed. Contact support.');
-      }
-      
-      // Show success message and credentials
-      setShowSuccess(true);
-      toast.success('Payment successful! Welcome to FUTBot.');
-      
-      // Mandatory redirect to success page with saved credentials
-      try {
-        localStorage.setItem('futbot:purchase', JSON.stringify({
-          email: userEmail,
-          accessCode: accessCode,
-          paymentId: details.id,
-          planId: plan.id,
-          ts: Date.now()
-        }));
-      } catch {}
-      const url = `/subscription/success?orderId=${encodeURIComponent(details.id || '')}&plan=${encodeURIComponent(plan.id)}`;
-      window.location.assign(url);
-      
-    } catch (error) {
-      console.error('Payment approval error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Payment processing failed';
-      
-      // Handle specific PayPal errors
-      if (errorMessage.includes('Window closed before response')) {
-        setPaypalError('Payment window was closed. Please try again.');
-        toast.error('Payment was interrupted. Please try again.');
-      } else {
-        setPaypalError(errorMessage);
-        toast.error(`Payment error: ${errorMessage}`);
-      }
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [onSuccess, onClose]);
-
-  const handlePayPalError = useCallback((err: any) => {
-    console.error('PayPal button error:', err);
-    const errorMessage = err.message || 'Unknown error occurred';
-    
-    // Handle specific PayPal errors
-    if (typeof errorMessage === 'string') {
-      if (errorMessage.includes('Target window is closed')) {
-        setPaypalError('Payment window was closed unexpectedly. Please try again.');
-        toast.error('Payment window closed. Please try again.');
-      } else if (errorMessage.includes('popup')) {
-        setPaypalError('Popup blocked. Please allow popups and try again.');
-        toast.error('Popup blocked. Please allow popups and try again.');
-      } else if (errorMessage.includes('network')) {
-        setPaypalError('Network error. Please check your connection and try again.');
-        toast.error('Network error. Please try again.');
-      } else if (errorMessage.includes('Window closed before response')) {
-        setPaypalError('Payment window was closed. Please try again.');
-        toast.error('Payment was interrupted. Please try again.');
-      } else if (errorMessage.includes('global_session_not_found')) {
-        setPaypalError('PayPal session issue detected. Please refresh the page and try again.');
-        toast.error('PayPal session issue. Please refresh the page and try again.');
-      } else if (errorMessage.includes('missing') || errorMessage.includes('uid')) {
-        setPaypalError('PayPal initialization issue. Please refresh the page and try again.');
-        toast.error('PayPal initialization issue. Please refresh and try again.');
-      } else {
-        setPaypalError('يبدو أن هناك خللاً ما في الوقت الحالي. يرجى المحاولة مرة أخرى لاحقاً.');
-        toast.error('يبدو أن هناك خللاً ما. يرجى المحاولة مرة أخرى.');
-      }
-    } else {
-      setPaypalError('An unexpected error occurred with PayPal');
-      toast.error('An unexpected error occurred with PayPal');
-    }
-    
-    setIsProcessing(false);
-  }, []);
-
-  const handlePayPalCancel = useCallback(() => {
-    console.log('PayPal payment cancelled');
-    setPaypalError('Payment was cancelled.');
-    toast.error('Payment was cancelled.');
-    setIsProcessing(false);
-  }, []);
-
-  const handlePayPalInit = useCallback(() => {
-    console.log('PayPal buttons initialized successfully');
-    setPaypalReady(true);
-    setPaypalError('');
-    
-    // Clear any existing errors and reset processing state
-    setIsProcessing(false);
-  }, []);
+  }, [plan?.id, userEmail, accessCode]);
 
   if (!isOpen) return null;
 
@@ -376,29 +201,18 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
                     </button>
                   </div>
                 ) : (
-                  <div className="min-h-[200px] flex items-center justify-center">
-                    <PayPalButtons 
-                      style={buttonStyle}
+                  <div className="min-h-[200px] flex items-center justify-center w-full">
+                    <button
+                      onClick={handleStartPaddleCheckout}
                       disabled={isProcessing}
-                      createOrder={handlePayPalPayment}
-                      onApprove={handlePayPalApprove}
-                      onError={handlePayPalError}
-                      onCancel={handlePayPalCancel}
-                      onInit={handlePayPalInit}
-                    />
+                      className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white rounded-lg font-medium transition-colors"
+                    >
+                      Continue with Secure Checkout
+                    </button>
                   </div>
                 )}
               </div>
-              <div className="text-center text-xs text-gray-500 mt-4">
-                Secure payment processed by
-                <div className="mt-1">
-                  <img 
-                    src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" 
-                    alt="PayPal" 
-                    className="h-5 mx-auto"
-                  />
-                </div>
-              </div>
+              <div className="text-center text-xs text-gray-500 mt-4">Secure payment processed by Paddle</div>
             </div>
           </div>
         </div>
