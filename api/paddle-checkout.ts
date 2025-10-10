@@ -15,25 +15,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!planId || !email || !accessCode) return res.status(400).json({ error: 'Missing required fields' });
     if (planId !== '1_month') return res.status(400).json({ error: 'Only 1_month plan is enabled' });
 
-    const paddleToken = process.env.PADDLE_TOKEN;
-    const priceId = process.env.PADDLE_PRICE_ID_1_MONTH;
+    // Classic Vendors API variables
+    const vendorId = process.env.PADDLE_VENDOR_ID;
+    const vendorAuthCode = process.env.PADDLE_VENDOR_AUTH_CODE;
+    const productId = process.env.PADDLE_PRODUCT_ID_1_MONTH; // Classic numeric product_id
     const appUrl = process.env.VITE_APP_URL || 'https://www.futbot.club';
 
-    if (!paddleToken || !priceId) return res.status(500).json({ error: 'Paddle environment not configured' });
+    if (!vendorId || !vendorAuthCode || !productId) {
+      return res.status(500).json({ error: 'Paddle Classic env not configured (PADDLE_VENDOR_ID, PADDLE_VENDOR_AUTH_CODE, PADDLE_PRODUCT_ID_1_MONTH)' });
+    }
 
     const payload = qs.stringify({
-      product_id: priceId,
+      vendor_id: vendorId,
+      vendor_auth_code: vendorAuthCode,
+      product_id: productId,
+      quantity: 1,
       customer_email: email,
-      custom_data: JSON.stringify({ planId, email, accessCode }),
+      passthrough: JSON.stringify({ planId, email, accessCode }),
       return_url: `${appUrl}/subscription/success?plan=${encodeURIComponent(planId)}`,
     });
 
-    console.log('Making request to Paddle with payload:', payload);
+    console.log('Making request to Paddle (Classic) with payload:', payload);
 
     const response = await axios.post('https://sandbox-vendors.paddle.com/api/2.0/product/generate_pay_link', payload, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization: `Bearer ${paddleToken}`,
       },
     });
 
