@@ -33,10 +33,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const paddleToken = process.env.PADDLE_TOKEN as string;
+    if (!paddleToken) {
+      return res.status(500).json({ error: 'PADDLE_TOKEN is not configured' });
+    }
     const paddleEnv = (process.env.PADDLE_ENV || 'sandbox').toLowerCase();
     const baseUrl = paddleEnv === 'live' ? 'https://api.paddle.com' : 'https://sandbox-api.paddle.com';
+    const appUrl = process.env.VITE_APP_URL || 'https://www.futbot.club';
 
-    // Build request to create a checkout link/session using Transactions API (Paddle v2)
+    // Build request to create a checkout session (recommended for hosted checkout)
     const payload: any = {
       items: [
         {
@@ -44,21 +48,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           quantity: 1,
         },
       ],
-      customer: {
-        email,
-      },
-      // Store metadata to be returned by webhook
+      customer_email: email,
       custom_data: {
         planId,
         email,
         accessCode,
       },
-      // Success/Cancel URLs
-      success_url: `${process.env.VITE_APP_URL || 'https://www.futbot.club'}/subscription/success?plan=${encodeURIComponent(planId)}`,
-      cancel_url: `${process.env.VITE_APP_URL || 'https://www.futbot.club'}/payment/cancel`,
+      success_url: `${appUrl}/subscription/success?plan=${encodeURIComponent(planId)}`,
+      cancel_url: `${appUrl}/payment/cancel`,
     };
 
-    const response = await axios.post(`${baseUrl}/v1/transactions`, payload, {
+    const response = await axios.post(`${baseUrl}/v1/checkout/sessions`, payload, {
       headers: {
         Authorization: `Bearer ${paddleToken}`,
         'Content-Type': 'application/json',
@@ -66,7 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     });
 
-    const checkoutUrl = response?.data?.data?.checkout_url || response?.data?.data?.url;
+    const checkoutUrl = response?.data?.data?.url || response?.data?.data?.checkout_url;
     const transactionId = response?.data?.data?.id;
 
     if (!checkoutUrl) {
