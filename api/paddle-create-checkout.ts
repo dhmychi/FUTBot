@@ -40,7 +40,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const baseUrl = paddleEnv === 'live' ? 'https://api.paddle.com' : 'https://sandbox-api.paddle.com';
     const appUrl = process.env.VITE_APP_URL || 'https://www.futbot.club';
 
-    // Build request to create a checkout session (recommended for hosted checkout)
+    // Build request to create a transaction with checkout URL
     const payload: any = {
       items: [
         {
@@ -54,11 +54,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         email,
         accessCode,
       },
-      success_url: `${appUrl}/subscription/success?plan=${encodeURIComponent(planId)}`,
-      cancel_url: `${appUrl}/payment/cancel`,
+      checkout: {
+        url: `${appUrl}/subscription/success?plan=${encodeURIComponent(planId)}`,
+      },
     };
 
-    const response = await axios.post(`${baseUrl}/v1/checkout/sessions`, payload, {
+    const response = await axios.post(`${baseUrl}/transactions`, payload, {
       headers: {
         Authorization: `Bearer ${paddleToken}`,
         'Content-Type': 'application/json',
@@ -66,7 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     });
 
-    const checkoutUrl = response?.data?.data?.url || response?.data?.data?.checkout_url;
+    const checkoutUrl = response?.data?.data?.checkout?.url || response?.data?.data?.url || response?.data?.data?.checkout_url;
     const transactionId = response?.data?.data?.id;
 
     if (!checkoutUrl) {
