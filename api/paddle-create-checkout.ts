@@ -36,6 +36,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!paddleToken) {
       return res.status(500).json({ error: 'PADDLE_TOKEN is not configured' });
     }
+    
+    // Validate token format
+    if (!paddleToken.startsWith('apikey_')) {
+      return res.status(500).json({ error: 'PADDLE_TOKEN format is invalid - should start with apikey_' });
+    }
     const paddleEnv = (process.env.PADDLE_ENV || 'sandbox').toLowerCase();
     const baseUrl = paddleEnv === 'live' ? 'https://api.paddle.com' : 'https://sandbox-api.paddle.com';
     const appUrl = process.env.VITE_APP_URL || 'https://www.futbot.club';
@@ -61,7 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const response = await axios.post(`${baseUrl}/transactions`, payload, {
       headers: {
-        Authorization: paddleToken,
+        Authorization: `Bearer ${paddleToken}`,
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
