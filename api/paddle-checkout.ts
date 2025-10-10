@@ -33,7 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           quantity: 1,
         },
       ],
-      customer_email: email,
+      customer: { email },
       custom_data: { planId, email, accessCode },
       success_url: `${appUrl}/subscription/success?plan=${encodeURIComponent(planId)}`,
       cancel_url: `${appUrl}/payment/cancel`,
