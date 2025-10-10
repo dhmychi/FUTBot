@@ -28,6 +28,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return_url: `${appUrl}/subscription/success?plan=${encodeURIComponent(planId)}`,
     });
 
+    console.log('Making request to Paddle with payload:', payload);
+
     const response = await axios.post('https://sandbox-vendors.paddle.com/api/2.0/product/generate_pay_link', payload, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -35,8 +37,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     });
 
-    const checkoutUrl = response?.data?.response?.url;
-    if (!checkoutUrl) return res.status(500).json({ error: 'Failed to create Paddle checkout' });
+    console.log('Paddle response:', JSON.stringify(response.data, null, 2));
+
+    const checkoutUrl = response?.data?.response?.url || response?.data?.url || response?.data?.checkout_url;
+    if (!checkoutUrl) {
+      console.error('No checkout URL found in response:', response.data);
+      return res.status(500).json({ error: 'Failed to create Paddle checkout', details: response.data });
+    }
 
     return res.status(200).json({ success: true, checkoutUrl });
 
