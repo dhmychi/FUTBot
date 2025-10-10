@@ -37,10 +37,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'PADDLE_TOKEN is not configured' });
     }
     
-    // Validate token format
-    if (!paddleToken.startsWith('apikey_')) {
-      console.warn('PADDLE_TOKEN does not start with apikey_, but continuing anyway');
-    }
+    // Log token for debugging (first 10 chars only)
+    console.log('PADDLE_TOKEN starts with:', paddleToken.substring(0, 10) + '...');
     const paddleEnv = (process.env.PADDLE_ENV || 'sandbox').toLowerCase();
     const baseUrl = paddleEnv === 'live' ? 'https://api.paddle.com' : 'https://sandbox-api.paddle.com';
     const appUrl = process.env.VITE_APP_URL || 'https://www.futbot.club';
