@@ -22,77 +22,66 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missing required fields: planId, email, accessCode' });
     }
 
-    // Only 1_month supported for now
     if (planId !== '1_month') {
       return res.status(400).json({ error: 'Only 1_month plan is enabled' });
     }
 
     // Get environment variables
-    const paddleToken = process.env.PADDLE_TOKEN;
+    const vendorId = process.env.PADDLE_VENDOR_ID;
+    const vendorAuthCode = process.env.PADDLE_VENDOR_AUTH_CODE;
     const priceId = process.env.PADDLE_PRICE_ID_1_MONTH;
     const paddleEnv = process.env.PADDLE_ENV || 'sandbox';
     const appUrl = process.env.VITE_APP_URL || 'https://www.futbot.club';
 
-    if (!paddleToken) {
-      return res.status(500).json({ error: 'PADDLE_TOKEN not configured' });
-    }
-
-    if (!priceId) {
-      return res.status(500).json({ error: 'PADDLE_PRICE_ID_1_MONTH not configured' });
+    if (!vendorId || !vendorAuthCode || !priceId) {
+      return res.status(500).json({ error: 'Paddle environment variables not configured properly' });
     }
 
     // Log for debugging
-    console.log('Paddle Token starts with:', paddleToken.substring(0, 10) + '...');
+    console.log('Vendor ID:', vendorId);
     console.log('Paddle Environment:', paddleEnv);
     console.log('Price ID:', priceId);
 
     // Determine API base URL
-    const baseUrl = paddleEnv === 'live' ? 'https://api.paddle.com' : 'https://sandbox-api.paddle.com';
+    const baseUrl = paddleEnv === 'live' 
+      ? 'https://vendors.paddle.com/api/2.0/order' 
+      : 'https://sandbox-vendors.paddle.com/api/2.0/order';
 
-    // Create Paddle checkout session
+    // Payload according to Paddle API
     const payload = {
-      items: [
-        {
-          price_id: priceId,
-          quantity: 1,
-        },
-      ],
+      vendor_id: vendorId,
+      vendor_auth_code: vendorAuthCode,
+      price_id: priceId,
+      quantity: 1,
       customer_email: email,
-      custom_data: {
-        planId,
-        email,
-        accessCode,
-      },
-      checkout: {
-        url: `${appUrl}/subscription/success?plan=${encodeURIComponent(planId)}`,
-      },
+      passthrough: JSON.stringify({ planId, email, accessCode }),
+      return_url: `${appUrl}/subscription/success?plan=${encodeURIComponent(planId)}`,
     };
 
-    console.log('Making request to:', `${baseUrl}/transactions`);
-    console.log('Payload:', JSON.stringify(payload, null, 2));
+    console.log('Making request to Paddle:', baseUrl);
+    console.log('Payload:', payload);
 
-    const response = await axios.post(`${baseUrl}/transactions`, payload, {
+    const response = await axios.post(baseUrl, payload, {
       headers: {
-        Authorization: `Bearer ${paddleToken}`,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
+      transformRequest: [(data) => {
+        // Paddle API expects URL-encoded form
+        return Object.entries(data)
+          .map(([key, val]) => `${encodeURIComponent(key)}=${encodeURIComponent(val as string)}`)
+          .join('&');
+      }],
     });
 
     console.log('Paddle response:', response.data);
 
-    const checkoutUrl = response?.data?.data?.checkout?.url || response?.data?.data?.url;
-    const transactionId = response?.data?.data?.id;
-
-    if (!checkoutUrl) {
-      return res.status(500).json({ error: 'Failed to create Paddle checkout' });
+    if (!response.data || !response.data.success) {
+      return res.status(500).json({ error: 'Failed to create Paddle checkout', details: response.data });
     }
 
-    return res.status(200).json({ 
-      success: true, 
-      checkoutUrl, 
-      transactionId 
-    });
+    // Checkout URL returned by Paddle
+    const checkoutUrl = response.data.response?.url;
+    return res.status(200).json({ success: true, checkoutUrl });
 
   } catch (error: any) {
     console.error('Paddle checkout error:', error?.response?.data || error?.message || error);
