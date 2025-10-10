@@ -58,10 +58,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       cancel_url: `${process.env.VITE_APP_URL || 'https://www.futbot.club'}/payment/cancel`,
     };
 
-    const response = await axios.post(`${baseUrl}/transactions`, payload, {
+    const response = await axios.post(`${baseUrl}/v1/transactions`, payload, {
       headers: {
         Authorization: `Bearer ${paddleToken}`,
         'Content-Type': 'application/json',
+        Accept: 'application/json',
       },
     });
 

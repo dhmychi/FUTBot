@@ -4,7 +4,7 @@ import crypto from 'crypto';
 // Verify Paddle v2 webhook using shared secret (PADDLE_WEBHOOK_SECRET)
 function verifySignature(req: VercelRequest): boolean {
   try {
-    const signature = (req.headers['paddle-signature'] || req.headers['Paddle-Signature'] || req.headers['paddle_signature']) as string | undefined;
+    const signature = (req.headers['paddle-signature'] || req.headers['paddle_signature'] || req.headers['paddle-signature-v2'] || req.headers['paddle-signature-v1']) as string | undefined;
     if (!signature) return false;
 
     const secret = process.env.PADDLE_WEBHOOK_SECRET as string;
