@@ -39,7 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     // Validate token format
     if (!paddleToken.startsWith('apikey_')) {
-      return res.status(500).json({ error: 'PADDLE_TOKEN format is invalid - should start with apikey_' });
+      console.warn('PADDLE_TOKEN does not start with apikey_, but continuing anyway');
     }
     const paddleEnv = (process.env.PADDLE_ENV || 'sandbox').toLowerCase();
     const baseUrl = paddleEnv === 'live' ? 'https://api.paddle.com' : 'https://sandbox-api.paddle.com';
