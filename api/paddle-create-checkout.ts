@@ -37,13 +37,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'PADDLE_TOKEN is not configured' });
     }
     
-    // Log token for debugging (first 10 chars only)
-    console.log('PADDLE_TOKEN starts with:', paddleToken.substring(0, 10) + '...');
+    // Check if token is not resolved (contains ${})
+    if (paddleToken.includes('${')) {
+      return res.status(500).json({ error: 'PADDLE_TOKEN is not resolved - check Vercel Environment Variables' });
+    }
+    
     const paddleEnv = (process.env.PADDLE_ENV || 'sandbox').toLowerCase();
     const baseUrl = paddleEnv === 'live' ? 'https://api.paddle.com' : 'https://sandbox-api.paddle.com';
     const appUrl = process.env.VITE_APP_URL || 'https://www.futbot.club';
+    
+    // Log token for debugging (first 10 chars only)
+    console.log('PADDLE_TOKEN starts with:', paddleToken.substring(0, 10) + '...');
+    console.log('PADDLE_ENV:', paddleEnv);
+    console.log('Base URL:', baseUrl);
+    console.log('Price ID:', priceId);
 
-    // Build request to create a transaction with checkout URL
+    // Build request to create a transaction with checkout URL using Paddle Billing API v1
     const payload: any = {
       items: [
         {
@@ -62,9 +71,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     };
 
-    const response = await axios.post(`${baseUrl}/transactions`, payload, {
+    const response = await axios.post(`${baseUrl}/v1/transactions`, payload, {
       headers: {
-        Authorization: paddleToken,
+        Authorization: `Bearer ${paddleToken}`,
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
