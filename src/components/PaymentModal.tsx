@@ -64,7 +64,7 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
       setPaypalError('');
 
       const apiBase = (import.meta as any).env?.VITE_API_BASE_URL || (location.hostname === 'localhost' ? 'https://www.futbot.club' : '');
-      const response = await fetch(`${apiBase}/api/paddle-create-checkout`, {
+      const response = await fetch(`${apiBase}/api/paddle-checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planId: plan.id, email: userEmail, accessCode }),
