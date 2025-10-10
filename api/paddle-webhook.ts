@@ -23,8 +23,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'Webhook secret not configured' });
     }
 
-    // Verify webhook signature
-    const signature = req.headers['paddle-signature'] as string;
+    // Verify webhook signature (handle common header casings)
+    const signature = (req.headers['paddle-signature'] || req.headers['Paddle-Signature'] || req.headers['paddle_signature']) as string;
     if (!signature) {
       console.error('No Paddle signature found');
       return res.status(400).json({ error: 'No signature provided' });
