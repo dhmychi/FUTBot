@@ -16,8 +16,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Get webhook secret
-    const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET;
+    // Get webhook secret (support both SECRET and ID env names)
+    const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET || process.env.PADDLE_WEBHOOK_ID;
     if (!webhookSecret) {
       console.error('PADDLE_WEBHOOK_SECRET not configured');
       return res.status(500).json({ error: 'Webhook secret not configured' });
