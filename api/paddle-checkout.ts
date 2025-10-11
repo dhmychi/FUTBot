@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import axios from 'axios';
-import qs from 'qs';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -15,28 +14,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!planId || !email || !accessCode) return res.status(400).json({ error: 'Missing required fields' });
     if (planId !== '1_month') return res.status(400).json({ error: 'Only 1_month plan is enabled' });
 
-    // Billing API (sessions)
     const paddleToken = process.env.PADDLE_TOKEN;
     const priceId = process.env.PADDLE_PRICE_ID_1_MONTH;
     const appUrl = process.env.VITE_APP_URL || 'https://www.futbot.club';
+
     if (!paddleToken || !priceId) {
-      return res.status(500).json({ error: 'Paddle Billing env not configured (PADDLE_TOKEN, PADDLE_PRICE_ID_1_MONTH)' });
+      return res.status(500).json({ error: 'Missing Paddle env vars (PADDLE_TOKEN, PADDLE_PRICE_ID_1_MONTH)' });
     }
 
     const env = (process.env.PADDLE_ENV || 'sandbox').toLowerCase();
-    const baseUrl = env === 'live' ? 'https://api.paddle.com' : 'https://sandbox-api.paddle.com';
+    const baseUrl = env === 'live' ? 'https://api.paddle.com' : 'https://api.sandbox.paddle.com';
 
     const payload = {
-      items: [
-        { price_id: priceId, quantity: 1 },
-      ],
-      customer_email: email,
+      items: [{ price_id: priceId, quantity: 1 }],
+      customer: { email },
       settings: {
         success_url: 'https://www.futbot.club/subscription/success',
         cancel_url: 'https://www.futbot.club/',
       },
     };
-    console.log('Using URLs:', payload.settings);
 
     console.log('Creating Billing checkout session at:', `${baseUrl}/v1/checkout/sessions`);
     const response = await axios.post(`${baseUrl}/v1/checkout/sessions`, payload, {
@@ -47,18 +43,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     });
 
-    console.log('Paddle response:', JSON.stringify(response.data, null, 2));
-
-    const checkoutUrl = response?.data?.data?.url || response?.data?.data?.checkout_url || response?.data?.url;
+    const checkoutUrl = response?.data?.data?.url;
     if (!checkoutUrl) {
-      console.error('No checkout URL found in response:', response.data);
+      console.error('No checkout URL found:', response.data);
       return res.status(500).json({ error: 'Failed to create Paddle checkout', details: response.data });
     }
 
     return res.status(200).json({ success: true, checkoutUrl });
 
   } catch (error: any) {
-    console.error('Paddle checkout error:', error?.response?.data || error?.message || error);
+    console.error('Paddle checkout error:', error?.response?.data || error);
     return res.status(500).json({ error: 'Internal server error', details: error?.response?.data || String(error) });
   }
 }
