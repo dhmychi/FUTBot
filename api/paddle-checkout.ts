@@ -28,18 +28,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const payload = {
       items: [
-        {
-          price_id: priceId,
-          quantity: 1,
-        },
+        { price_id: priceId, quantity: 1 },
       ],
-      customer: { email },
-      custom_data: { planId, email, accessCode },
+      customer_email: email,
       settings: {
-        success_url: `${appUrl}/subscription/success?plan=${encodeURIComponent(planId)}`,
-        cancel_url: `${appUrl}/payment/cancel`,
+        success_url: 'https://www.futbot.club/subscription/success',
+        cancel_url: 'https://www.futbot.club/',
       },
     };
+    console.log('Using URLs:', payload.settings);
 
     console.log('Creating Billing checkout session at:', `${baseUrl}/v1/checkout/sessions`);
     const response = await axios.post(`${baseUrl}/v1/checkout/sessions`, payload, {
