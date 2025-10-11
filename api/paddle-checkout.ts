@@ -26,7 +26,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const env = (process.env.PADDLE_ENV || 'sandbox').toLowerCase();
-    const baseUrl = env === 'live' ? 'https://api.paddle.com' : 'https://api.sandbox.paddle.com'; // <- تم تصحيح هنا
+    const baseUrl = env === 'live' ? 'https://api.paddle.com' : 'https://api.sandbox.paddle.com';
+
+    // 🔍 لوق تشخيصي للمتغيرات
+    console.log('🔍 Environment check:', {
+      PADDLE_ENV: process.env.PADDLE_ENV,
+      PADDLE_TOKEN: paddleToken?.substring(0, 20) + '...',
+      PADDLE_PRICE_ID: priceId,
+      baseUrl,
+      env
+    });
 
     const payload = {
       items: [{ price_id: priceId, quantity: 1 }],
