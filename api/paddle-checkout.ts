@@ -19,7 +19,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const paddleToken = process.env.PADDLE_TOKEN;
     const priceId = process.env.PADDLE_PRICE_ID_1_MONTH;
-    const appUrl = process.env.VITE_APP_URL || 'https://futbot.club';
+    const rawAppUrl = process.env.VITE_APP_URL;
+    const appUrl = !rawAppUrl || /^\$\{.+\}$/.test(rawAppUrl)
+      ? 'https://futbot.club'
+      : rawAppUrl;
+    const appUrlNormalized = appUrl.replace(/\/+$/, '');
 
     if (!paddleToken || !priceId) {
       return res.status(500).json({
@@ -48,18 +52,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       customer: { email },
       custom_data: { planId, email, accessCode },
       settings: {
-        success_url: `${appUrl}/subscription/success`,
-        cancel_url: `${appUrl}/`,
+        success_url: `${appUrlNormalized}/subscription/success`,
+        cancel_url: `${appUrlNormalized}/`,
       },
     };
 
     // ✅ endpoint الصحيح لإنشاء جلسة Checkout
-    console.log('Creating checkout session at:', `${baseUrl}v1/checkout/sessions`);
+    console.log('Creating checkout session at:', `${baseUrl}v1/checkout/sessions`, {
+      successUrl: payload.settings.success_url,
+      cancelUrl: payload.settings.cancel_url,
+    });
     const response = await axios.post(`${baseUrl}v1/checkout/sessions`, payload, {
       headers: {
         Authorization: `Bearer ${paddleToken}`,
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        'Paddle-Version': '1',
       },
     });
 
