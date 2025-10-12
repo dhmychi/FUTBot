@@ -19,14 +19,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const paddleToken = process.env.PADDLE_TOKEN;
     const priceId = process.env.PADDLE_PRICE_ID_1_MONTH;
-    const appUrl = process.env.VITE_APP_URL || 'https://www.futbot.club';
+    const appUrl = process.env.VITE_APP_URL || 'https://futbot.club';
 
     if (!paddleToken || !priceId) {
       return res.status(500).json({ error: 'Missing Paddle env vars (PADDLE_TOKEN, PADDLE_PRICE_ID_1_MONTH)' });
     }
 
     const env = (process.env.PADDLE_ENV || 'sandbox').toLowerCase();
-    const baseUrl = env === 'live' ? 'https://api.paddle.com' : 'https://api.sandbox.paddle.com';
+    const baseUrl = env === 'live' ? 'https://api.paddle.com' : 'https://sandbox-api.paddle.com';
 
     // 🔍 لوق تشخيصي للمتغيرات
     console.log('🔍 Environment check:', {
@@ -40,9 +40,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const payload = {
       items: [{ price_id: priceId, quantity: 1 }],
       customer: { email },
+      custom_data: { planId, email, accessCode },
       settings: {
-        success_url: 'https://www.futbot.club/subscription/success',
-        cancel_url: 'https://www.futbot.club/',
+        success_url: `${appUrl}/subscription/success`,
+        cancel_url: `${appUrl}/`,
       },
     };
 
