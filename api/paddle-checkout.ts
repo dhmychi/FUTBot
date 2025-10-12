@@ -25,13 +25,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : rawAppUrl;
     const appUrlNormalized = appUrl.replace(/\/+$/, '');
 
-    if (!paddleToken || !priceId) {
+    const isPlaceholder = (value?: string) => typeof value === 'string' && /^\$\{.+\}$/.test(value);
+
+    if (!paddleToken || !priceId || isPlaceholder(paddleToken) || isPlaceholder(priceId)) {
+      console.error('Paddle env invalid:', {
+        hasToken: Boolean(paddleToken),
+        hasPriceId: Boolean(priceId),
+        tokenLooksPlaceholder: isPlaceholder(paddleToken),
+        priceIdLooksPlaceholder: isPlaceholder(priceId),
+      });
       return res.status(500).json({
-        error: 'Missing Paddle env vars (PADDLE_TOKEN, PADDLE_PRICE_ID_1_MONTH)',
+        error: 'Invalid Paddle env vars',
+        details: 'PADDLE_TOKEN and/or PADDLE_PRICE_ID_1_MONTH are missing or unresolved placeholders',
       });
     }
 
     const env = (process.env.PADDLE_ENV || 'sandbox').toLowerCase();
+    const envLooksPlaceholder = isPlaceholder(process.env.PADDLE_ENV);
 
     // Base URL الصحيح
     const baseUrl =
@@ -45,6 +55,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       PADDLE_PRICE_ID: priceId,
       baseUrl,
       env,
+      envLooksPlaceholder,
     });
 
     const payload = {
