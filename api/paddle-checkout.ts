@@ -69,16 +69,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     };
 
-    // ✅ endpoint الصحيح لإنشاء جلسة Checkout
-    const sessionsEndpoint = `${baseUrl}v1/checkout/sessions`;
-    console.log('Creating checkout session at:', sessionsEndpoint, {
+    // ✅ جرّب أحدث مسار أولاً ثم مسارات v1 احتياطية
+    const newSessionsEndpoint = `${baseUrl}checkout/sessions`;
+    const v1SessionsEndpoint = `${baseUrl}v1/checkout/sessions`;
+    const v1CheckoutEndpoint = `${baseUrl}v1/checkout`;
+    console.log('Creating checkout session at:', newSessionsEndpoint, {
       successUrl: payload.settings.success_url,
       cancelUrl: payload.settings.cancel_url,
     });
 
     let response;
     try {
-      response = await axios.post(sessionsEndpoint, payload, {
+      response = await axios.post(newSessionsEndpoint, payload, {
         headers: {
           Authorization: `Bearer ${paddleToken}`,
           'Content-Type': 'application/json',
@@ -89,18 +91,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } catch (err: any) {
       const code = err?.response?.data?.error?.code || err?.code;
       const status = err?.response?.status;
-      const fallbackEndpoint = `${baseUrl}v1/checkout`;
-      // Fallback في حال كان مسار الجلسات غير مدعوم في الحساب/البيئة
       if (code === 'invalid_url' || status === 404) {
-        console.warn('Checkout sessions endpoint invalid; retrying fallback endpoint:', fallbackEndpoint);
-        response = await axios.post(fallbackEndpoint, payload, {
-          headers: {
-            Authorization: `Bearer ${paddleToken}`,
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            'Paddle-Version': '1',
-          },
-        });
+        console.warn('New sessions endpoint invalid; retrying v1 sessions:', v1SessionsEndpoint);
+        try {
+          response = await axios.post(v1SessionsEndpoint, payload, {
+            headers: {
+              Authorization: `Bearer ${paddleToken}`,
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+              'Paddle-Version': '1',
+            },
+          });
+        } catch (err2: any) {
+          const code2 = err2?.response?.data?.error?.code || err2?.code;
+          const status2 = err2?.response?.status;
+          if (code2 === 'invalid_url' || status2 === 404) {
+            console.warn('v1 sessions invalid; retrying legacy v1 checkout:', v1CheckoutEndpoint);
+            response = await axios.post(v1CheckoutEndpoint, payload, {
+              headers: {
+                Authorization: `Bearer ${paddleToken}`,
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'Paddle-Version': '1',
+              },
+            });
+          } else {
+            throw err2;
+          }
+        }
       } else {
         throw err;
       }
