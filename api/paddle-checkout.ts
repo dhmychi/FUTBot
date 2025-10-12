@@ -17,12 +17,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (planId !== '1_month')
       return res.status(400).json({ error: 'Only 1_month plan is enabled' });
 
-    const paddleToken = process.env.PADDLE_TOKEN;
-    const priceId = process.env.PADDLE_PRICE_ID_1_MONTH;
+    const paddleToken = (process.env.PADDLE_TOKEN || '').trim();
+    const priceId = (process.env.PADDLE_PRICE_ID_1_MONTH || '').trim();
     const rawAppUrl = process.env.VITE_APP_URL;
-    const appUrl = !rawAppUrl || /^\$\{.+\}$/.test(rawAppUrl)
+    const appUrlBase = !rawAppUrl || /^\$\{.+\}$/.test(rawAppUrl)
       ? 'https://futbot.club'
       : rawAppUrl;
+    const appUrl = appUrlBase.trim();
     const appUrlNormalized = appUrl.replace(/\/+$/, '');
 
     const isPlaceholder = (value?: string) => typeof value === 'string' && /^\$\{.+\}$/.test(value);
@@ -40,7 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const env = (process.env.PADDLE_ENV || 'sandbox').toLowerCase();
+    const env = ((process.env.PADDLE_ENV || 'sandbox').trim()).toLowerCase();
     const envLooksPlaceholder = isPlaceholder(process.env.PADDLE_ENV);
 
     // Base URL الصحيح
