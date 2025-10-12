@@ -29,13 +29,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const env = (process.env.PADDLE_ENV || 'sandbox').toLowerCase();
 
-    // ✅ التعديل الأساسي هنا
+    // Base URL الصحيح
     const baseUrl =
       env === 'live'
         ? 'https://api.paddle.com/'
         : 'https://sandbox-api.paddle.com/';
 
-    // 🔍 لوق تشخيصي
     console.log('🔍 Environment check:', {
       PADDLE_ENV: process.env.PADDLE_ENV,
       PADDLE_TOKEN: paddleToken?.substring(0, 20) + '...',
@@ -44,7 +43,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       env,
     });
 
-    // ✅ شكل الـ payload متوافق مع Paddle API v2
     const payload = {
       items: [{ price_id: priceId, quantity: 1 }],
       customer: { email },
@@ -55,9 +53,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     };
 
-    // ✅ endpoint الصحيح في Paddle v2
-    console.log('Creating checkout session at:', `${baseUrl}checkout`);
-    const response = await axios.post(`${baseUrl}checkout`, payload, {
+    // ✅ endpoint الصحيح لإنشاء جلسة Checkout
+    console.log('Creating checkout session at:', `${baseUrl}v1/checkout/sessions`);
+    const response = await axios.post(`${baseUrl}v1/checkout/sessions`, payload, {
       headers: {
         Authorization: `Bearer ${paddleToken}`,
         'Content-Type': 'application/json',
@@ -65,7 +63,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     });
 
-    // 🔁 استخراج رابط الدفع
     const checkoutUrl =
       response?.data?.data?.url ||
       response?.data?.data?.checkout_url ||
