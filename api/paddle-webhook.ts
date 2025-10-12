@@ -1,104 +1,128 @@
+// Load .env variables at the very beginning
+import 'dotenv/config';
+
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import crypto from 'crypto';
+import axios from 'axios';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS headers
+  // Check loaded environment variables
+  console.log('✅ Loaded Paddle env vars:', {
+    PADDLE_TOKEN: process.env.PADDLE_TOKEN ? '✅' : '❌',
+    PADDLE_PRICE_ID_1_MONTH: process.env.PADDLE_PRICE_ID_1_MONTH ? '✅' : '❌',
+    PADDLE_ENV: process.env.PADDLE_ENV || 'sandbox'
+  });
+
+  // إعدادات CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Paddle-Signature');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    // Get webhook secret (support both SECRET and ID env names)
-    const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET || process.env.PADDLE_WEBHOOK_ID;
-    if (!webhookSecret) {
-      console.error('PADDLE_WEBHOOK_SECRET not configured');
-      return res.status(500).json({ error: 'Webhook secret not configured' });
-    }
+    const { planId, email, accessCode } = req.body || {};
+    if (!planId || !email || !accessCode)
+      return res.status(400).json({ error: 'Missing required fields' });
+    if (planId !== '1_month')
+      return res.status(400).json({ error: 'Only 1_month plan is enabled' });
 
-    // Verify webhook signature (handle common header casings)
-    const signature = (req.headers['paddle-signature'] || req.headers['Paddle-Signature'] || req.headers['paddle_signature']) as string;
-    if (!signature) {
-      console.error('No Paddle signature found');
-      return res.status(400).json({ error: 'No signature provided' });
-    }
+    const paddleToken = process.env.PADDLE_TOKEN;
+    const priceId = process.env.PADDLE_PRICE_ID_1_MONTH;
+    const rawAppUrl = process.env.VITE_APP_URL;
+    const appUrl = !rawAppUrl || /^\$\{.+\}$/.test(rawAppUrl)
+      ? 'https://futbot.club'
+      : rawAppUrl;
+    const appUrlNormalized = appUrl.replace(/\/+$/, '');
 
-    // Verify signature
-    const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-    const hmac = crypto.createHmac('sha256', webhookSecret).update(rawBody, 'utf8').digest('hex');
-    
-    if (!crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(signature))) {
-      console.error('Invalid webhook signature');
-      return res.status(400).json({ error: 'Invalid signature' });
-    }
-
-    // Process webhook event
-    const event = req.body;
-    console.log('Paddle webhook event:', JSON.stringify(event, null, 2));
-
-    const eventType = event?.event_type || event?.type;
-    if (!eventType || !eventType.includes('transaction') || !eventType.includes('completed')) {
-      console.log('Event ignored:', eventType);
-      return res.status(200).json({ message: 'Event ignored' });
-    }
-
-    // Extract transaction data
-    const data = event?.data || {};
-    const customData = data?.custom_data || {};
-    
-    const planId = customData?.planId;
-    const email = customData?.email;
-    const accessCode = customData?.accessCode;
-    const transactionId = data?.id;
-
-    if (!planId || !email || !accessCode) {
-      console.error('Missing custom data in webhook');
-      return res.status(400).json({ error: 'Missing custom data' });
-    }
-
-    console.log('Creating KeyAuth user for:', { planId, email, accessCode, transactionId });
-
-    // Create KeyAuth user
-    try {
-      const createUserResponse = await fetch(`${process.env.VITE_APP_URL || 'https://www.futbot.club'}/api/create-user-after-payment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          accessCode,
-          paymentId: transactionId || `paddle_${Date.now()}`,
-          planId,
-          amount: data?.details?.totals?.total || data?.amount,
-        }),
+    if (!paddleToken || !priceId) {
+      return res.status(500).json({
+        error: 'Missing Paddle env vars (PADDLE_TOKEN, PADDLE_PRICE_ID_1_MONTH)',
       });
-
-      if (!createUserResponse.ok) {
-        const errorText = await createUserResponse.text();
-        console.error('Failed to create KeyAuth user:', errorText);
-        return res.status(500).json({ error: 'Failed to create user account' });
-      }
-
-      const result = await createUserResponse.json();
-      console.log('KeyAuth user created successfully:', result);
-
-    } catch (err) {
-      console.error('Error creating KeyAuth user:', err);
-      return res.status(500).json({ error: 'Account setup failed' });
     }
 
-    return res.status(200).json({ success: true });
+    const env = (process.env.PADDLE_ENV || 'sandbox').toLowerCase();
 
-  } catch (error) {
-    console.error('Paddle webhook error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    // Base URL الصحيح
+    const baseUrl =
+      env === 'live'
+        ? 'https://api.paddle.com/'
+        : 'https://sandbox-api.paddle.com/';
+
+    console.log('🔍 Environment check:', {
+      PADDLE_ENV: process.env.PADDLE_ENV,
+      PADDLE_TOKEN: paddleToken?.substring(0, 20) + '...',
+      PADDLE_PRICE_ID: priceId,
+      baseUrl,
+      env,
+    });
+
+    const payload = {
+      items: [{ price_id: priceId, quantity: 1 }],
+      customer: { email },
+      custom_data: { planId, email, accessCode },
+      settings: {
+        success_url: `${appUrlNormalized}/subscription/success`,
+        cancel_url: `${appUrlNormalized}/`,
+      },
+    };
+
+    // endpoint الصحيح لإنشاء جلسة Checkout
+    const sessionsEndpoint = `${baseUrl}v1/checkout/sessions`;
+    console.log('Creating checkout session at:', sessionsEndpoint, {
+      successUrl: payload.settings.success_url,
+      cancelUrl: payload.settings.cancel_url,
+    });
+
+    let response;
+    try {
+      response = await axios.post(sessionsEndpoint, payload, {
+        headers: {
+          Authorization: `Bearer ${paddleToken}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Paddle-Version': '1',
+        },
+      });
+    } catch (err: any) {
+      const code = err?.response?.data?.error?.code || err?.code;
+      const status = err?.response?.status;
+      const fallbackEndpoint = `${baseUrl}v1/checkout`;
+      // Fallback في حال كان مسار الجلسات غير مدعوم
+      if (code === 'invalid_url' || status === 404) {
+        console.warn('Checkout sessions endpoint invalid; retrying fallback endpoint:', fallbackEndpoint);
+        response = await axios.post(fallbackEndpoint, payload, {
+          headers: {
+            Authorization: `Bearer ${paddleToken}`,
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'Paddle-Version': '1',
+          },
+        });
+      } else {
+        throw err;
+      }
+    }
+
+    const checkoutUrl =
+      response?.data?.data?.url ||
+      response?.data?.data?.checkout_url ||
+      response?.data?.redirect_url;
+
+    if (!checkoutUrl) {
+      console.error('No checkout URL found:', response.data);
+      return res.status(500).json({
+        error: 'Failed to create Paddle checkout',
+        details: response.data,
+      });
+    }
+
+    return res.status(200).json({ success: true, checkoutUrl });
+  } catch (error: any) {
+    console.error('Paddle checkout error:', error?.response?.data || error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      details: error?.response?.data || String(error),
+    });
   }
 }
