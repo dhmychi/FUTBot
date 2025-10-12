@@ -12,9 +12,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { planId, email, accessCode } = req.body || {};
-    if (!planId || !email || !accessCode) 
+    if (!planId || !email || !accessCode)
       return res.status(400).json({ error: 'Missing required fields' });
-    if (planId !== '1_month') 
+    if (planId !== '1_month')
       return res.status(400).json({ error: 'Only 1_month plan is enabled' });
 
     const paddleToken = process.env.PADDLE_TOKEN;
@@ -22,21 +22,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const appUrl = process.env.VITE_APP_URL || 'https://futbot.club';
 
     if (!paddleToken || !priceId) {
-      return res.status(500).json({ error: 'Missing Paddle env vars (PADDLE_TOKEN, PADDLE_PRICE_ID_1_MONTH)' });
+      return res.status(500).json({
+        error: 'Missing Paddle env vars (PADDLE_TOKEN, PADDLE_PRICE_ID_1_MONTH)',
+      });
     }
 
     const env = (process.env.PADDLE_ENV || 'sandbox').toLowerCase();
-    const baseUrl = env === 'live' ? 'https://api.paddle.com' : 'https://sandbox-api.paddle.com';
 
-    // 🔍 لوق تشخيصي للمتغيرات
+    // ✅ التعديل الأساسي هنا
+    const baseUrl =
+      env === 'live'
+        ? 'https://api.paddle.com/'
+        : 'https://sandbox-api.paddle.com/';
+
+    // 🔍 لوق تشخيصي
     console.log('🔍 Environment check:', {
       PADDLE_ENV: process.env.PADDLE_ENV,
       PADDLE_TOKEN: paddleToken?.substring(0, 20) + '...',
       PADDLE_PRICE_ID: priceId,
       baseUrl,
-      env
+      env,
     });
 
+    // ✅ شكل الـ payload متوافق مع Paddle API v2
     const payload = {
       items: [{ price_id: priceId, quantity: 1 }],
       customer: { email },
@@ -47,8 +55,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     };
 
-    console.log('Creating Billing checkout session at:', `${baseUrl}/v1/checkout/sessions`);
-    const response = await axios.post(`${baseUrl}/v1/checkout/sessions`, payload, {
+    // ✅ endpoint الصحيح في Paddle v2
+    console.log('Creating checkout session at:', `${baseUrl}checkout`);
+    const response = await axios.post(`${baseUrl}checkout`, payload, {
       headers: {
         Authorization: `Bearer ${paddleToken}`,
         'Content-Type': 'application/json',
@@ -56,16 +65,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     });
 
-    const checkoutUrl = response?.data?.data?.url || response?.data?.data?.checkout_url;
+    // 🔁 استخراج رابط الدفع
+    const checkoutUrl =
+      response?.data?.data?.url ||
+      response?.data?.data?.checkout_url ||
+      response?.data?.redirect_url;
+
     if (!checkoutUrl) {
       console.error('No checkout URL found:', response.data);
-      return res.status(500).json({ error: 'Failed to create Paddle checkout', details: response.data });
+      return res.status(500).json({
+        error: 'Failed to create Paddle checkout',
+        details: response.data,
+      });
     }
 
     return res.status(200).json({ success: true, checkoutUrl });
-
   } catch (error: any) {
     console.error('Paddle checkout error:', error?.response?.data || error);
-    return res.status(500).json({ error: 'Internal server error', details: error?.response?.data || String(error) });
+    return res.status(500).json({
+      error: 'Internal server error',
+      details: error?.response?.data || String(error),
+    });
   }
 }
