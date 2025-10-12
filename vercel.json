@@ -3,19 +3,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"gh-pages\" ]; then echo 'Skipping build for gh-pages branch'; exit 0; else exit 1; fi",
-  "env": {
-    "KEYAUTH_SELLER_KEY": "${KEYAUTH_SELLER_KEY}",
-    "VITE_PAYPAL_CLIENT_ID": "${VITE_PAYPAL_CLIENT_ID}",
-    "PAYPAL_CLIENT_SECRET": "${PAYPAL_CLIENT_SECRET}",
-    "PAYPAL_ENVIRONMENT": "${PAYPAL_ENVIRONMENT}",
-    "PAYPAL_WEBHOOK_ID": "${PAYPAL_WEBHOOK_ID}",
-    "RESEND_API_KEY": "${RESEND_API_KEY}",
-    "FROM_EMAIL": "${FROM_EMAIL}",
-    "PADDLE_ENV": "${PADDLE_ENV}",
-    "PADDLE_TOKEN": "${PADDLE_TOKEN}",
-    "PADDLE_WEBHOOK_SECRET": "${PADDLE_WEBHOOK_SECRET}",
-    "PADDLE_PRICE_ID_1_MONTH": "${PADDLE_PRICE_ID_1_MONTH}"
-  },
   "rewrites": [
     {
       "source": "/((?!api/).*)",
