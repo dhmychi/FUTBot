@@ -42,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         Authorization: `Bearer ${paddleToken}`,
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        'Paddle-Version': '2', // مهم للنسخة الجديدة
+        'Paddle-Version': '1',
       },
     });
 
