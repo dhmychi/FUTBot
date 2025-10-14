@@ -39,7 +39,7 @@ VITE_MAINTENANCE_MODE=true
 # Paddle (Sandbox)
 #33 ============================= 
 PADDLE_ENV=sandbox
-PADDLE_TOKEN=pdl_sdbx_apikey_01k7b8yjp2jtqh1n23y75g03cz_rkzxD2FYw2nWxGSKFGKBqr_AOm
+PADDLE_TOKEN=pdl_sdbx_apikey_01k7jf1ebhkbqd5qbg7g7ceb73_6PbF3qzA5frNKG7kw3Jr5p_AUI
 PADDLE_WEBHOOK_SECRET=pdl_ntfset_01k75s9kvst6ba2q9h204gdeje_wj19QLhgsiN1/o276JZ1AMOQ27ovPUi2
 PADDLE_PRICE_ID_1_MONTH=pri_01k75rgk9xzcdb4esdrb50jsba
 VITE_APP_URL=https://www.futbot.club
