@@ -14,8 +14,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (planId !== '1_month')
       return res.status(400).json({ error: 'Only 1_month plan is enabled' });
 
-    // المتغيرات البيئية
-    const paddleToken = (process.env.PADDLE_TOKEN || '').trim();
+    // توكن Sandbox المقدم للاختبار فقط
+    const paddleToken = 'test_fea1f6a340da50e0ffe0a4403c4';
     const priceId = (process.env.PADDLE_PRICE_ID_1_MONTH || '').trim();
     const appUrl = (process.env.VITE_APP_URL || 'https://futbot.club').replace(/\/+$/, '');
 
