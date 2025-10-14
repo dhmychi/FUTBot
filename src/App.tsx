@@ -11,6 +11,7 @@ import PrivacyPage from './pages/Privacy';
 import RefundPage from './pages/Refund';
 import NotFound from './pages/NotFound';
 import SubscriptionSuccess from './pages/SubscriptionSuccess';
+import PaymentCancel from './pages/PaymentCancel';
 import { AuthProvider } from './contexts/AuthContext';
 import { I18nProvider } from './contexts/I18nContext';
 import en from './locales/en';
@@ -80,6 +81,7 @@ function App() {
                 <Route path="/privacy" element={<PrivacyPage />} />
                 <Route path="/refund" element={<RefundPage />} />
                 <Route path="/subscription/success" element={<SubscriptionSuccess />} />
+                <Route path="/payment/cancel" element={<PaymentCancel />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <Toaster position="top-right" />
