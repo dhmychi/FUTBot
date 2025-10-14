@@ -34,8 +34,25 @@ const paypalOptions: PayPalScriptOptions = {
 function App() {
   console.log('PayPal: Using Client ID from env');
   const maintenanceMode = String(import.meta.env.VITE_MAINTENANCE_MODE || '').toLowerCase() === 'true';
+  let maintenanceBypass = false;
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    const previewParam = params.get('preview');
+    if (previewParam === '1') {
+      try { localStorage.setItem('maintenanceBypass', '1'); } catch {}
+      const url = new URL(window.location.href);
+      url.searchParams.delete('preview');
+      window.history.replaceState({}, '', url.toString());
+    } else if (previewParam === '0') {
+      try { localStorage.removeItem('maintenanceBypass'); } catch {}
+      const url = new URL(window.location.href);
+      url.searchParams.delete('preview');
+      window.history.replaceState({}, '', url.toString());
+    }
+    try { maintenanceBypass = localStorage.getItem('maintenanceBypass') === '1'; } catch {}
+  }
   
-  if (maintenanceMode) {
+  if (maintenanceMode && !maintenanceBypass) {
     return (
       <HelmetProvider>
         <PayPalScriptProvider options={paypalOptions}>
