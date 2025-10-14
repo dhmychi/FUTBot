@@ -17,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // استخدام التوكن من المتغيرات البيئية (Sandbox)
     const paddleToken = (process.env.PADDLE_TOKEN || '').trim();
     const priceId = (process.env.PADDLE_PRICE_ID_1_MONTH || '').trim();
-    const appUrl = (process.env.VITE_APP_URL || 'https://futbot.club').replace(/\/+$/, '');
+    // const appUrl = (process.env.VITE_APP_URL || 'https://futbot.club').replace(/\/+$/, '');
 
     if (!paddleToken || !priceId) {
       return res.status(500).json({ error: 'Invalid Paddle environment variables' });
@@ -28,15 +28,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       items: [{ price_id: priceId, quantity: 1 }],
       customer: { email },
       custom_data: { planId, email, accessCode },
-      settings: {
-        success_url: `${appUrl}/subscription/success`,
-        cancel_url: `${appUrl}/`,
-      },
+      collection_mode: 'automatic'
     };
 
-    const endpoint = 'https://sandbox-api.paddle.com/checkout/sessions';
+    const endpoint = 'https://sandbox-api.paddle.com/transactions';
 
-    // إرسال الطلب
+    // إرسال الطلب (Transactions API)
     const response = await axios.post(endpoint, payload, {
       headers: {
         Authorization: `Bearer ${paddleToken}`,
@@ -46,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     });
 
-    const checkoutUrl = response?.data?.url || response?.data?.data?.url;
+    const checkoutUrl = response?.data?.checkout_url || response?.data?.data?.checkout_url || response?.data?.url;
     if (!checkoutUrl) {
       return res.status(500).json({ error: 'Failed to create Paddle checkout', details: response.data });
     }
