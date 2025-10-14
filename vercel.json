@@ -31,5 +31,13 @@
         }
       ]
     }
-  ]
+  ],
+  "build": {
+    "env": {
+      "VITE_MAINTENANCE_MODE": "true"
+    }
+  },
+  "env": {
+    "VITE_MAINTENANCE_MODE": "true"
+  }
 }
