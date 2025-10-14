@@ -19,10 +19,10 @@ export default function ComingSoon() {
           </div>
 
           <h1 className="text-5xl md:text-6xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white to-futbot-accent">
-            سنعود قريباً
+            We’ll be back soon
           </h1>
           <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto">
-            نقوم حالياً بأعمال صيانة وتحديثات لتحسين الموقع. شكراً لصبرك 🙏
+            We’re performing maintenance and updates to improve the experience. Thanks for your patience.
           </p>
 
           <div className="mt-10">
