@@ -16,6 +16,7 @@ import { I18nProvider } from './contexts/I18nContext';
 import en from './locales/en';
 import ar from './locales/ar';
 import es from './locales/es';
+import ComingSoon from './pages/ComingSoon';
 
 import type { PayPalScriptOptions } from '@paypal/paypal-js';
 
@@ -32,7 +33,23 @@ const paypalOptions: PayPalScriptOptions = {
 
 function App() {
   console.log('PayPal: Using Client ID from env');
+  const maintenanceMode = String(import.meta.env.VITE_MAINTENANCE_MODE || '').toLowerCase() === 'true';
   
+  if (maintenanceMode) {
+    return (
+      <HelmetProvider>
+        <PayPalScriptProvider options={paypalOptions}>
+          <I18nProvider dictionaries={{ en, ar, es }}>
+            <AuthProvider>
+              <ComingSoon />
+              <Toaster position="top-right" />
+            </AuthProvider>
+          </I18nProvider>
+        </PayPalScriptProvider>
+      </HelmetProvider>
+    );
+  }
+
   return (
     <HelmetProvider>
       <PayPalScriptProvider options={paypalOptions}>
