@@ -20,8 +20,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const paddleToken = (process.env.PADDLE_TOKEN || '').trim();
     const priceId = (process.env.PADDLE_PRICE_ID_1_MONTH || '').trim();
     const rawAppUrl = process.env.VITE_APP_URL;
+    // Prefer explicit app URL; otherwise infer from request headers (works on Vercel and locally)
+    const inferredHost = (req.headers['x-forwarded-host'] as string) || (req.headers.host as string) || 'futbot.club';
+    const inferredProto = (req.headers['x-forwarded-proto'] as string) || 'https';
+    const inferredBase = `${inferredProto}://${inferredHost}`;
     const appUrlBase = !rawAppUrl || /^\$\{.+\}$/.test(rawAppUrl)
-      ? 'https://futbot.club'
+      ? inferredBase
       : rawAppUrl;
     const appUrl = appUrlBase.trim();
     const appUrlNormalized = appUrl.replace(/\/+$/, '');
@@ -57,6 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       baseUrl,
       env,
       envLooksPlaceholder,
+      appUrlNormalized,
     });
 
     const payload = {
