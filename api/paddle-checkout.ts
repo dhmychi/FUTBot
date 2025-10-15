@@ -43,7 +43,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     });
 
-    const checkoutUrl = response?.data?.checkout_url || response?.data?.data?.checkout_url || response?.data?.url;
+    const checkoutUrl =
+      response?.data?.checkout_url ||
+      response?.data?.data?.checkout_url ||
+      response?.data?.data?.checkout?.url ||
+      response?.data?.url;
     if (!checkoutUrl) {
       return res.status(500).json({ error: 'Failed to create Paddle checkout', details: response.data });
     }
