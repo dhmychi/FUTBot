@@ -32,15 +32,10 @@
       ]
     }
   ],
-  "build": {
-    "env": {
-      "VITE_MAINTENANCE_MODE": "true"
-    }
-  },
   "env": {
-    "VITE_MAINTENANCE_MODE": "false",
+    "VITE_MAINTENANCE_MODE": "true",
     "VITE_APP_URL": "https://www.futbot.club",
-    "VITE_DISABLE_PREVIEW_BYPASS": "false",
-    "VITE_COMING_SOON_HOME": "true"
+    "VITE_DISABLE_PREVIEW_BYPASS": "true",
+    "VITE_COMING_SOON_HOME": "false"
   }
 }
