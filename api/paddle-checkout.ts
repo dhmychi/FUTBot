@@ -17,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // استخدام التوكن من المتغيرات البيئية (Sandbox)
     const paddleToken = (process.env.PADDLE_TOKEN || '').trim();
     const priceId = (process.env.PADDLE_PRICE_ID_1_MONTH || '').trim();
-    // const appUrl = (process.env.VITE_APP_URL || 'https://futbot.club').replace(/\/+$/, '');
+    const appUrl = (process.env.VITE_APP_URL || 'https://futbot.club').replace(/\/+$/, '');
 
     if (!paddleToken || !priceId) {
       return res.status(500).json({ error: 'Invalid Paddle environment variables' });
@@ -28,7 +28,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       items: [{ price_id: priceId, quantity: 1 }],
       customer: { email },
       custom_data: { planId, email, accessCode },
-      collection_mode: 'automatic'
+      collection_mode: 'automatic',
+      return_url: `${appUrl}/subscription/success`,
+      cancel_url: `${appUrl}/payment/cancel`
     };
 
     const endpoint = 'https://sandbox-api.paddle.com/transactions';
