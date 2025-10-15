@@ -14,14 +14,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Paddle Billing webhook commonly includes event_type like 'transaction.completed'
     const eventType: string | undefined = body?.event_type || body?.event || body?.type;
     const data = body?.data || body;
-    const status: string | undefined = data?.status || data?.transaction?.status;
+    let status: string | undefined = data?.status || data?.transaction?.status;
 
     console.log('📥 Paddle Webhook received:', { eventType, status });
 
     if (!data) return res.status(400).json({ error: 'Invalid webhook payload' });
 
     // Only proceed when transaction is completed/paid
-    const isCompleted = (eventType && /transaction\.completed/i.test(eventType)) || status === 'completed' || status === 'paid';
+    const normalizedEvent = (eventType || '').toLowerCase();
+    // Success signals we accept
+    const successEvents = new Set(['transaction.completed', 'transaction.paid', 'transaction.billed']);
+    const successStatuses = new Set(['completed', 'paid', 'billed']);
+
+    // Try to resolve latest status for updated events
+    const transactionIdEarly: string | undefined = data?.id || data?.transaction?.id;
+    if ((!status || !successStatuses.has(String(status).toLowerCase())) && normalizedEvent === 'transaction.updated' && transactionIdEarly) {
+      try {
+        const token = (process.env.PADDLE_TOKEN || '').trim();
+        if (token) {
+          const txResp = await axios.get(`https://sandbox-api.paddle.com/transactions/${encodeURIComponent(transactionIdEarly)}`, {
+            headers: { Authorization: `Bearer ${token}`, Accept: 'application/json', 'Paddle-Version': '1' }
+          });
+          const txData = txResp?.data?.data || txResp?.data || {};
+          status = txData?.status || status;
+        }
+      } catch (e) {
+        console.warn('⚠️ Failed to refresh transaction status:', (e as any)?.response?.data || String(e));
+      }
+    }
+
+    const isCompleted = successEvents.has(normalizedEvent) || successStatuses.has(String(status || '').toLowerCase());
     if (!isCompleted) {
       console.log('⏭️ Skipping non-completed event');
       return res.status(200).json({ ok: true });
