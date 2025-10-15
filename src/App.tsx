@@ -34,40 +34,7 @@ const paypalOptions: PayPalScriptOptions = {
 
 function App() {
   console.log('PayPal: Using Client ID from env');
-  const maintenanceMode = String(import.meta.env.VITE_MAINTENANCE_MODE || '').toLowerCase() === 'true';
-  const disableBypass = String(import.meta.env.VITE_DISABLE_PREVIEW_BYPASS || '').toLowerCase() === 'true';
-  let maintenanceBypass = false;
-  if (!disableBypass && typeof window !== 'undefined') {
-    const params = new URLSearchParams(window.location.search);
-    const previewParam = params.get('preview');
-    if (previewParam === '1') {
-      try { localStorage.setItem('maintenanceBypass', '1'); } catch {}
-      const url = new URL(window.location.href);
-      url.searchParams.delete('preview');
-      window.history.replaceState({}, '', url.toString());
-    } else if (previewParam === '0') {
-      try { localStorage.removeItem('maintenanceBypass'); } catch {}
-      const url = new URL(window.location.href);
-      url.searchParams.delete('preview');
-      window.history.replaceState({}, '', url.toString());
-    }
-    try { maintenanceBypass = localStorage.getItem('maintenanceBypass') === '1'; } catch {}
-  }
-  
-  if (maintenanceMode && !maintenanceBypass) {
-    return (
-      <HelmetProvider>
-        <PayPalScriptProvider options={paypalOptions}>
-          <I18nProvider dictionaries={{ en, ar, es }}>
-            <AuthProvider>
-              <ComingSoon />
-              <Toaster position="top-right" />
-            </AuthProvider>
-          </I18nProvider>
-        </PayPalScriptProvider>
-      </HelmetProvider>
-    );
-  }
+  const showComingSoonHome = String(import.meta.env.VITE_COMING_SOON_HOME || '').toLowerCase() === 'true';
 
   return (
     <HelmetProvider>
@@ -76,7 +43,7 @@ function App() {
           <AuthProvider>
             <BrowserRouter>
               <Routes>
-                <Route path="/" element={<HomeFacade />} />
+                <Route path="/" element={showComingSoonHome ? <ComingSoon /> : <HomeFacade />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
