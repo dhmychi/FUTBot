@@ -104,6 +104,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Create license key via KeyAuth Seller API
+    console.log('🔑 Creating KeyAuth license for:', email);
     const sellerParams = new URLSearchParams();
     sellerParams.append('sellerkey', KEYAUTH_SELLER_KEY);
     sellerParams.append('type', 'add');
@@ -114,9 +115,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     sellerParams.append('format', 'JSON');
     sellerParams.append('note', `Paddle transaction - ${email} - Plan: ${plan.name}`);
 
+    console.log('🔑 Calling KeyAuth add license API...');
     const addResp = await axios.post('https://keyauth.win/api/seller/', sellerParams, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
+    console.log('🔑 KeyAuth add response:', addResp.data);
 
     if (!addResp.data?.success) {
       console.error('❌ KeyAuth add failed:', addResp.data);
@@ -127,6 +130,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!licenseKey) return res.status(500).json({ error: 'No license key returned from KeyAuth add' });
 
     // Activate user
+    console.log('👤 Activating user:', email, 'with license:', licenseKey);
     const activateParams = new URLSearchParams();
     activateParams.append('sellerkey', KEYAUTH_SELLER_KEY);
     activateParams.append('type', 'activate');
@@ -134,7 +138,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     activateParams.append('key', licenseKey);
     activateParams.append('pass', accessCode);
 
+    console.log('👤 Calling KeyAuth activate API...');
     const actResp = await axios.get(`https://keyauth.win/api/seller/?${activateParams.toString()}`);
+    console.log('👤 KeyAuth activate response:', actResp.data);
     if (!actResp.data?.success) {
       console.error('❌ KeyAuth activate failed:', actResp.data);
       return res.status(500).json({ error: 'KeyAuth activate failed', details: actResp.data });
