@@ -89,9 +89,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const plan = PLANS[planId];
     if (!plan) return res.status(400).json({ error: 'Invalid planId' });
 
-    // Load and sanitize Seller Key
-    const KEYAUTH_SELLER_KEY = (process.env.KEYAUTH_SELLER_KEY || '').replace(/\s+/g, '');
-    console.log('KEYAUTH_SELLER_KEY length:', KEYAUTH_SELLER_KEY.length);
+    // Load and sanitize Seller Key (strip any non-alphanumerics just in case)
+    const KEYAUTH_SELLER_KEY_RAW = process.env.KEYAUTH_SELLER_KEY || '';
+    const KEYAUTH_SELLER_KEY = KEYAUTH_SELLER_KEY_RAW.replace(/[^A-Za-z0-9]/g, '').trim();
+    console.log('KEYAUTH_SELLER_KEY length:', KEYAUTH_SELLER_KEY.length, 'tail:', KEYAUTH_SELLER_KEY.slice(-4));
 
     if (!KEYAUTH_SELLER_KEY) return res.status(500).json({ error: 'Missing KEYAUTH_SELLER_KEY' });
     if (KEYAUTH_SELLER_KEY.length !== 32) {
