@@ -10,13 +10,24 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import axios from 'axios';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  console.log('🚀 Webhook handler started');
+  
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  
+  if (req.method === 'OPTIONS') {
+    console.log('✅ OPTIONS request handled');
+    return res.status(200).end();
+  }
+  
+  if (req.method !== 'POST') {
+    console.log('❌ Invalid method:', req.method);
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
   try {
+    console.log('📥 Processing webhook request...');
     const body: any = req.body;
     const eventType: string | undefined = body?.event_type || body?.event || body?.type;
     const data = body?.data || body;
@@ -148,6 +159,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ success: true, email, licenseKey, planId });
   } catch (error: any) {
     console.error('💥 Paddle webhook error:', error?.response?.data || error);
-    return res.status(500).json({ error: 'Internal server error', details: error?.response?.data || String(error) });
+    console.error('💥 Error stack:', error?.stack);
+    console.error('💥 Error message:', error?.message);
+    
+    return res.status(500).json({ 
+      error: 'Internal server error', 
+      details: error?.response?.data || String(error),
+      message: error?.message,
+      stack: error?.stack
+    });
   }
 }
