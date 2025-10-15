@@ -1,128 +1,92 @@
 // Load .env variables at the very beginning
-import 'dotenv/config';
-
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import axios from 'axios';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Check loaded environment variables
-  console.log('✅ Loaded Paddle env vars:', {
-    PADDLE_TOKEN: process.env.PADDLE_TOKEN ? '✅' : '❌',
-    PADDLE_PRICE_ID_1_MONTH: process.env.PADDLE_PRICE_ID_1_MONTH ? '✅' : '❌',
-    PADDLE_ENV: process.env.PADDLE_ENV || 'sandbox'
-  });
-
-  // إعدادات CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { planId, email, accessCode } = req.body || {};
-    if (!planId || !email || !accessCode)
-      return res.status(400).json({ error: 'Missing required fields' });
-    if (planId !== '1_month')
-      return res.status(400).json({ error: 'Only 1_month plan is enabled' });
+    const body: any = req.body;
+    // Paddle Billing webhook commonly includes event_type like 'transaction.completed'
+    const eventType: string | undefined = body?.event_type || body?.event || body?.type;
+    const data = body?.data || body;
+    const status: string | undefined = data?.status || data?.transaction?.status;
 
-    const paddleToken = process.env.PADDLE_TOKEN;
-    const priceId = process.env.PADDLE_PRICE_ID_1_MONTH;
-    const rawAppUrl = process.env.VITE_APP_URL;
-    const appUrl = !rawAppUrl || /^\$\{.+\}$/.test(rawAppUrl)
-      ? 'https://futbot.club'
-      : rawAppUrl;
-    const appUrlNormalized = appUrl.replace(/\/+$/, '');
+    console.log('📥 Paddle Webhook received:', { eventType, status });
 
-    if (!paddleToken || !priceId) {
-      return res.status(500).json({
-        error: 'Missing Paddle env vars (PADDLE_TOKEN, PADDLE_PRICE_ID_1_MONTH)',
-      });
+    if (!data) return res.status(400).json({ error: 'Invalid webhook payload' });
+
+    // Only proceed when transaction is completed/paid
+    const isCompleted = (eventType && /transaction\.completed/i.test(eventType)) || status === 'completed' || status === 'paid';
+    if (!isCompleted) {
+      console.log('⏭️ Skipping non-completed event');
+      return res.status(200).json({ ok: true });
     }
 
-    const env = (process.env.PADDLE_ENV || 'sandbox').toLowerCase();
+    // Extract custom data and email
+    const customData = data?.custom_data || data?.transaction?.custom_data || {};
+    const planId: string | undefined = customData?.planId || customData?.plan || data?.plan_id;
+    const email: string | undefined = customData?.email || data?.customer_email || data?.customer?.email;
+    const accessCode: string | undefined = customData?.accessCode || customData?.password;
 
-    // Base URL الصحيح
-    const baseUrl =
-      env === 'live'
-        ? 'https://api.paddle.com/'
-        : 'https://sandbox-api.paddle.com/';
+    if (!planId || !email || !accessCode) {
+      console.error('❌ Missing purchase info', { planId, email: !!email, accessCode: !!accessCode });
+      return res.status(400).json({ error: 'Missing required custom_data (planId, email, accessCode)' });
+    }
 
-    console.log('🔍 Environment check:', {
-      PADDLE_ENV: process.env.PADDLE_ENV,
-      PADDLE_TOKEN: paddleToken?.substring(0, 20) + '...',
-      PADDLE_PRICE_ID: priceId,
-      baseUrl,
-      env,
-    });
-
-    const payload = {
-      items: [{ price_id: priceId, quantity: 1 }],
-      customer: { email },
-      custom_data: { planId, email, accessCode },
-      settings: {
-        success_url: `${appUrlNormalized}/subscription/success`,
-        cancel_url: `${appUrlNormalized}/`,
-      },
+    // Map planId to duration and price (adjust as needed)
+    const PLANS: Record<string, { duration: number; price: number; name: string }> = {
+      '1_month': { duration: 30, price: 15.0, name: '1 Month' },
     };
+    const plan = PLANS[planId];
+    if (!plan) return res.status(400).json({ error: 'Invalid planId' });
 
-    // endpoint الصحيح لإنشاء جلسة Checkout
-    const sessionsEndpoint = `${baseUrl}v1/checkout/sessions`;
-    console.log('Creating checkout session at:', sessionsEndpoint, {
-      successUrl: payload.settings.success_url,
-      cancelUrl: payload.settings.cancel_url,
+    const KEYAUTH_SELLER_KEY = process.env.KEYAUTH_SELLER_KEY as string;
+    if (!KEYAUTH_SELLER_KEY) return res.status(500).json({ error: 'Missing KEYAUTH_SELLER_KEY' });
+
+    // Create license key via Seller API
+    const sellerParams = new URLSearchParams();
+    sellerParams.append('sellerkey', KEYAUTH_SELLER_KEY);
+    sellerParams.append('type', 'add');
+    sellerParams.append('expiry', plan.duration.toString());
+    sellerParams.append('amount', '1');
+    sellerParams.append('level', '1');
+    sellerParams.append('mask', '******-******-******-******');
+    sellerParams.append('format', 'JSON');
+    sellerParams.append('note', `Paddle transaction - ${email} - Plan: ${plan.name}`);
+
+    const addResp = await axios.post('https://keyauth.win/api/seller/', sellerParams, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
+    if (!addResp.data?.success) {
+      console.error('❌ KeyAuth add failed:', addResp.data);
+      return res.status(500).json({ error: 'KeyAuth add license failed', details: addResp.data });
+    }
+    const licenseKey: string | undefined = addResp.data.key || addResp.data.keys?.[0];
+    if (!licenseKey) return res.status(500).json({ error: 'No license key returned from KeyAuth add' });
 
-    let response;
-    try {
-      response = await axios.post(sessionsEndpoint, payload, {
-        headers: {
-          Authorization: `Bearer ${paddleToken}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          'Paddle-Version': '1',
-        },
-      });
-    } catch (err: any) {
-      const code = err?.response?.data?.error?.code || err?.code;
-      const status = err?.response?.status;
-      const fallbackEndpoint = `${baseUrl}v1/checkout`;
-      // Fallback في حال كان مسار الجلسات غير مدعوم
-      if (code === 'invalid_url' || status === 404) {
-        console.warn('Checkout sessions endpoint invalid; retrying fallback endpoint:', fallbackEndpoint);
-        response = await axios.post(fallbackEndpoint, payload, {
-          headers: {
-            Authorization: `Bearer ${paddleToken}`,
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            'Paddle-Version': '1',
-          },
-        });
-      } else {
-        throw err;
-      }
+    // Activate user
+    const activateParams = new URLSearchParams();
+    activateParams.append('sellerkey', KEYAUTH_SELLER_KEY);
+    activateParams.append('type', 'activate');
+    activateParams.append('user', email);
+    activateParams.append('key', licenseKey);
+    activateParams.append('pass', accessCode);
+
+    const actResp = await axios.get(`https://keyauth.win/api/seller/?${activateParams.toString()}`);
+    if (!actResp.data?.success) {
+      console.error('❌ KeyAuth activate failed:', actResp.data);
+      return res.status(500).json({ error: 'KeyAuth activate failed', details: actResp.data });
     }
 
-    const checkoutUrl =
-      response?.data?.data?.url ||
-      response?.data?.data?.checkout_url ||
-      response?.data?.redirect_url;
-
-    if (!checkoutUrl) {
-      console.error('No checkout URL found:', response.data);
-      return res.status(500).json({
-        error: 'Failed to create Paddle checkout',
-        details: response.data,
-      });
-    }
-
-    return res.status(200).json({ success: true, checkoutUrl });
+    console.log('✅ KeyAuth user created successfully');
+    return res.status(200).json({ success: true, email, licenseKey, planId });
   } catch (error: any) {
-    console.error('Paddle checkout error:', error?.response?.data || error);
-    return res.status(500).json({
-      error: 'Internal server error',
-      details: error?.response?.data || String(error),
-    });
+    console.error('💥 Paddle webhook error:', error?.response?.data || error);
+    return res.status(500).json({ error: 'Internal server error', details: error?.response?.data || String(error) });
   }
 }
