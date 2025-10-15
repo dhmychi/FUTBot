@@ -79,6 +79,16 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
       const checkoutUrl = data?.checkoutUrl;
       if (!checkoutUrl) throw new Error('Invalid checkout URL');
 
+      // Persist purchase info so success page can show details
+      try {
+        localStorage.setItem('futbot:purchase', JSON.stringify({
+          email: userEmail,
+          accessCode,
+          planId: plan.id,
+          ts: Date.now()
+        }));
+      } catch {}
+
       window.location.assign(checkoutUrl);
     } catch (error: any) {
       const message = error?.message || 'Failed to start checkout';

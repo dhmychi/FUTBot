@@ -49,6 +49,7 @@ function App() {
                 <Route path="/privacy" element={<PrivacyPage />} />
                 <Route path="/refund" element={<RefundPage />} />
                 <Route path="/subscription/success" element={<SubscriptionSuccess />} />
+                <Route path="/payment/success" element={<SubscriptionSuccess />} />
                 <Route path="/payment/cancel" element={<PaymentCancel />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
