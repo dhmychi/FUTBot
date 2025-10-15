@@ -111,14 +111,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     sellerParams.append('expiry', plan.duration.toString());
     sellerParams.append('amount', '1');
     sellerParams.append('level', '1');
-    sellerParams.append('mask', '******-******-******-******');
+    sellerParams.append('mask', '******-******-******-******-******-******');
     sellerParams.append('format', 'JSON');
     sellerParams.append('note', `Paddle transaction - ${email} - Plan: ${plan.name}`);
 
     console.log('🔑 Calling KeyAuth add license API...');
-    const addResp = await axios.post('https://keyauth.win/api/seller/', sellerParams, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    });
+    const addResp = await axios.get(`https://keyauth.win/api/seller/?${sellerParams.toString()}`);
     console.log('🔑 KeyAuth add response:', addResp.data);
 
     if (!addResp.data?.success) {
