@@ -35,8 +35,9 @@ const paypalOptions: PayPalScriptOptions = {
 function App() {
   console.log('PayPal: Using Client ID from env');
   const maintenanceMode = String(import.meta.env.VITE_MAINTENANCE_MODE || '').toLowerCase() === 'true';
+  const disableBypass = String(import.meta.env.VITE_DISABLE_PREVIEW_BYPASS || '').toLowerCase() === 'true';
   let maintenanceBypass = false;
-  if (typeof window !== 'undefined') {
+  if (!disableBypass && typeof window !== 'undefined') {
     const params = new URLSearchParams(window.location.search);
     const previewParam = params.get('preview');
     if (previewParam === '1') {
