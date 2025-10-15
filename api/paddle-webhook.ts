@@ -89,8 +89,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const plan = PLANS[planId];
     if (!plan) return res.status(400).json({ error: 'Invalid planId' });
 
-    const KEYAUTH_SELLER_KEY = process.env.KEYAUTH_SELLER_KEY as string;
+    const KEYAUTH_SELLER_KEY = (process.env.KEYAUTH_SELLER_KEY || '').trim();
     if (!KEYAUTH_SELLER_KEY) return res.status(500).json({ error: 'Missing KEYAUTH_SELLER_KEY' });
+    if (KEYAUTH_SELLER_KEY.length !== 32) {
+      console.error('❌ Invalid Seller Key length:', KEYAUTH_SELLER_KEY.length);
+      return res.status(500).json({
+        error: 'Invalid Seller Key length',
+        details: `Seller key must be exactly 32 characters long, got ${KEYAUTH_SELLER_KEY.length}`
+      });
+    }
 
     // Create license key via Seller API
     const sellerParams = new URLSearchParams();
