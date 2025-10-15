@@ -28,7 +28,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Extract custom data and email
-    const customData = data?.custom_data || data?.transaction?.custom_data || {};
+    let customData: any = data?.custom_data || data?.transaction?.custom_data || {};
+    const transactionId: string | undefined = data?.id || data?.transaction?.id;
+
+    // Fallback: fetch full transaction details from Paddle if custom_data is missing
+    if ((!customData || Object.keys(customData).length === 0) && transactionId) {
+      try {
+        const token = (process.env.PADDLE_TOKEN || '').trim();
+        if (token) {
+          const txResp = await axios.get(`https://sandbox-api.paddle.com/transactions/${encodeURIComponent(transactionId)}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: 'application/json',
+              'Paddle-Version': '1'
+            }
+          });
+          const txData = txResp?.data?.data || txResp?.data || {};
+          customData = txData?.custom_data || txData?.transaction?.custom_data || customData || {};
+        }
+      } catch (e) {
+        console.warn('⚠️ Failed to fetch transaction details for custom_data fallback:', (e as any)?.response?.data || String(e));
+      }
+    }
+
     const planId: string | undefined = customData?.planId || customData?.plan || data?.plan_id;
     const email: string | undefined = customData?.email || data?.customer_email || data?.customer?.email;
     const accessCode: string | undefined = customData?.accessCode || customData?.password;
