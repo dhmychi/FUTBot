@@ -1,4 +1,11 @@
-// Load .env variables at the very beginning
+// ==============================
+// Paddle Webhook Handler (Vercel)
+// ==============================
+
+// Load .env variables immediately
+import dotenv from 'dotenv';
+dotenv.config();
+
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import axios from 'axios';
 
@@ -11,7 +18,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const body: any = req.body;
-    // Paddle Billing webhook commonly includes event_type like 'transaction.completed'
     const eventType: string | undefined = body?.event_type || body?.event || body?.type;
     const data = body?.data || body;
     let status: string | undefined = data?.status || data?.transaction?.status;
@@ -20,13 +26,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!data) return res.status(400).json({ error: 'Invalid webhook payload' });
 
-    // Only proceed when transaction is completed/paid
     const normalizedEvent = (eventType || '').toLowerCase();
-    // Success signals we accept
     const successEvents = new Set(['transaction.completed', 'transaction.paid', 'transaction.billed']);
     const successStatuses = new Set(['completed', 'paid', 'billed']);
 
-    // Try to resolve latest status for updated events
+    // Handle transaction.updated by fetching latest status
     const transactionIdEarly: string | undefined = data?.id || data?.transaction?.id;
     if ((!status || !successStatuses.has(String(status).toLowerCase())) && normalizedEvent === 'transaction.updated' && transactionIdEarly) {
       try {
@@ -53,17 +57,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let customData: any = data?.custom_data || data?.transaction?.custom_data || {};
     const transactionId: string | undefined = data?.id || data?.transaction?.id;
 
-    // Fallback: fetch full transaction details from Paddle if custom_data is missing
+    // Fallback: fetch full transaction details from Paddle if custom_data missing
     if ((!customData || Object.keys(customData).length === 0) && transactionId) {
       try {
         const token = (process.env.PADDLE_TOKEN || '').trim();
         if (token) {
           const txResp = await axios.get(`https://sandbox-api.paddle.com/transactions/${encodeURIComponent(transactionId)}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              Accept: 'application/json',
-              'Paddle-Version': '1'
-            }
+            headers: { Authorization: `Bearer ${token}`, Accept: 'application/json', 'Paddle-Version': '1' }
           });
           const txData = txResp?.data?.data || txResp?.data || {};
           customData = txData?.custom_data || txData?.transaction?.custom_data || customData || {};
@@ -82,14 +82,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missing required custom_data (planId, email, accessCode)' });
     }
 
-    // Map planId to duration and price (adjust as needed)
+    // Map planId to duration and price
     const PLANS: Record<string, { duration: number; price: number; name: string }> = {
       '1_month': { duration: 30, price: 15.0, name: '1 Month' },
     };
     const plan = PLANS[planId];
     if (!plan) return res.status(400).json({ error: 'Invalid planId' });
 
-    const KEYAUTH_SELLER_KEY = (process.env.KEYAUTH_SELLER_KEY || '').trim();
+    // Load and sanitize Seller Key
+    const KEYAUTH_SELLER_KEY = (process.env.KEYAUTH_SELLER_KEY || '').replace(/\s+/g, '');
+    console.log('KEYAUTH_SELLER_KEY length:', KEYAUTH_SELLER_KEY.length);
+
     if (!KEYAUTH_SELLER_KEY) return res.status(500).json({ error: 'Missing KEYAUTH_SELLER_KEY' });
     if (KEYAUTH_SELLER_KEY.length !== 32) {
       console.error('❌ Invalid Seller Key length:', KEYAUTH_SELLER_KEY.length);
@@ -99,7 +102,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Create license key via Seller API
+    // Create license key via KeyAuth Seller API
     const sellerParams = new URLSearchParams();
     sellerParams.append('sellerkey', KEYAUTH_SELLER_KEY);
     sellerParams.append('type', 'add');
@@ -113,10 +116,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const addResp = await axios.post('https://keyauth.win/api/seller/', sellerParams, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
+
     if (!addResp.data?.success) {
       console.error('❌ KeyAuth add failed:', addResp.data);
       return res.status(500).json({ error: 'KeyAuth add license failed', details: addResp.data });
     }
+
     const licenseKey: string | undefined = addResp.data.key || addResp.data.keys?.[0];
     if (!licenseKey) return res.status(500).json({ error: 'No license key returned from KeyAuth add' });
 
